@@ -159,6 +159,7 @@ key_bindings:
 #   - (Linux/BSD) user login shell
 #   - (Windows) powershell
 shell:
-  program: /usr/local/bin/fish
-  args:
-    - --login
+  program: /usr/local/bin/tmux
+  # program: /usr/local/bin/fish
+  # args:
+  #   - --login

@@ -16,7 +16,7 @@ alias cat='bat'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
 
 # env variables
-export STARSHIP_CONFIG=~/.config/starship/starship.toml
+export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
  
 export GOPATH=$HOME/Incubator/golang
 export GOROOT="/usr/local/opt/go/libexec"

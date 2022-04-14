@@ -1,7 +1,7 @@
 # Warning: This config does not include keys that have an unset value
 
 # $all is shorthand for $username$hostname$localip$shlvl$singularity$kubernetes$directory$vcsh$git_branch$git_commit$git_state$git_metrics$git_status$hg_branch$docker_context$package$cmake$cobol$dart$deno$dotnet$elixir$elm$erlang$golang$haskell$helm$java$julia$kotlin$lua$nim$nodejs$ocaml$perl$php$pulumi$purescript$python$rlang$red$ruby$rust$scala$swift$terraform$vlang$vagrant$zig$buf$nix_shell$conda$memory_usage$aws$gcloud$openstack$azure$env_var$crystal$custom$sudo$cmd_duration$line_break$jobs$battery$time$status$container$shell$character
-format = '$username@directory$git_branch$git_commit$git_state$git_metrics$git_status$hg_branch$docker_context$package'
+format = '$username$hostname$localip$shlvl$singularity$kubernetes$directory$vcsh$git_branch$git_commit$git_state$git_metrics$git_status$hg_branch$docker_context'
 right_format = ''
 continuation_prompt = '[∙](bright-black) '
 scan_timeout = 30
@@ -12,7 +12,7 @@ add_newline = true
 format = 'on [$symbol($profile )(\($region\) )(\[$duration\])]($style)'
 symbol = '☁️  '
 style = 'bold yellow'
-disabled = true 
+disabled = false
 expiration_symbol = 'X'
 
 [aws.region_aliases]
@@ -251,7 +251,7 @@ disabled = false
 format = 'on [$symbol$account(@$domain)(\($region\))]($style) '
 symbol = '☁️  '
 style = 'bold blue'
-disabled = true 
+disabled = false
 
 [gcloud.region_aliases]
 
@@ -667,7 +667,7 @@ format = 'via [$symbol($version )]($style)'
 version_format = 'v${raw}'
 symbol = '💎 '
 style = 'bold red'
-disabled = true 
+disabled = false
 detect_extensions = ['rb']
 detect_files = [
     'Gemfile',
