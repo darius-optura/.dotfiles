@@ -14,6 +14,7 @@ alias lal='ls -al'
 alias dirs='dirs -v'
 alias cat='bat'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
+alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
