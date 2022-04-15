@@ -3,6 +3,7 @@ require('colors')
 require('telescope-config')
 require('coc-config')
 require('harpoon-config')
+require('debug-config')
 require('lualine').setup()
 
 require'nvim-treesitter.configs'.setup {
@@ -25,6 +26,7 @@ return require('packer').startup(function()
   use 'nvim-treesitter/nvim-treesitter' 
   use 'tpope/vim-commentary'
   use 'JoosepAlviste/nvim-ts-context-commentstring'
+  use 'puremourning/vimspector'
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
   -- use 'cupsadarius/vim-horizon'
