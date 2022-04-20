@@ -54,10 +54,4 @@ return require('packer').startup(function()
     'nvim-telescope/telescope-fzf-native.nvim',
     run = 'make'
   }
-  use {
-    'numToStr/Comment.nvim',
-    config = function()
-        require('Comment').setup()
-    end
-  }
 end)
