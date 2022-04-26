@@ -77,7 +77,7 @@ git clone --depth 1 https://github.com/wbthomason/packer.nvim\
 ### Install Language Servers
 
 ```bash
-npm install -g typescript typescript-language-server dockerfile-language-server-nodejs
+npm install -g typescript typescript-language-server dockerfile-language-server-nodejs vscode-langservers-extracted
 ```
 
 ```bash
