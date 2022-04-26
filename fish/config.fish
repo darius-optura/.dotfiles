@@ -35,3 +35,6 @@ export PATH="$PATH:$HOME/.rvm/bin"
 export BAT_THEME="Catppuccin"
 
 starship init fish | source
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
