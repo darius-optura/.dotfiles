@@ -13,6 +13,7 @@ alias lal='ls -al'
 alias dirs='dirs -v'
 alias cat='bat'
 alias gg='lazygit'
+alias python='python3'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
 alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 
