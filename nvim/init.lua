@@ -1,7 +1,7 @@
 require('basics')
 require('colors')
 require('telescope-config')
-require('coc-config')
+require('lsp')
 require('harpoon-config')
 require('debug-config')
 require('git')
@@ -22,7 +22,6 @@ require'nvim-treesitter.configs'.setup {
 
 return require('packer').startup(function()
   use 'wbthomason/packer.nvim'
-  use {'neoclide/coc.nvim', branch = 'release'}
   use 'folke/tokyonight.nvim'
   use 'nvim-treesitter/nvim-treesitter' 
   use 'tpope/vim-commentary'
@@ -31,6 +30,7 @@ return require('packer').startup(function()
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
   use 'kdheepak/lazygit.nvim'
+  use 'neovim/nvim-lspconfig'
   -- use 'cupsadarius/vim-horizon'
   -- use 'morhetz/gruvbox'
   -- use 'drewtempelmeyer/palenight.vim'

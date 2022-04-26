@@ -19,7 +19,7 @@ alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
  
-export GOPATH=$HOME/Incubator/golang
+export GOPATH=$HOME/Incubator/Go
 export GOROOT="/usr/local/opt/go/libexec"
 #export GO111MODULE=on
 export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
