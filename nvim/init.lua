@@ -4,6 +4,7 @@ require('telescope-config')
 require('coc-config')
 require('harpoon-config')
 require('debug-config')
+require('git')
 require('lualine').setup()
 
 require'nvim-treesitter.configs'.setup {
@@ -29,6 +30,7 @@ return require('packer').startup(function()
   use 'puremourning/vimspector'
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
+  use 'kdheepak/lazygit.nvim'
   -- use 'cupsadarius/vim-horizon'
   -- use 'morhetz/gruvbox'
   -- use 'drewtempelmeyer/palenight.vim'
