@@ -33,6 +33,7 @@ export CLOUDSDK_PYTHON=python3
 export PATH="$PATH:$HOME/.rvm/bin"
 
 export BAT_THEME="Catppuccin"
+export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 
 starship init fish | source
 

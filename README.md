@@ -44,6 +44,7 @@ ln -s $HOME/.dotfiles/nvim ./nvim
 ln -s $HOME/.dotfiles/starship ./starship
 ln -s $HOME/.dotfiles/tmux ./tmux
 ln -s $HOME/.dotfiles/bat ./bat
+ln -s $HOME/.dotfiles/lazygit ./lazygit
 ```
 
 ### Install [oh-my-fish](https://github.com/oh-my-fish/oh-my-fish)
