@@ -43,6 +43,7 @@ ln -s $HOME/.dotfiles/fish ./fish
 ln -s $HOME/.dotfiles/nvim ./nvim
 ln -s $HOME/.dotfiles/starship ./starship
 ln -s $HOME/.dotfiles/tmux ./tmux
+ln -s $HOME/.dotfiles/bat ./bat
 ```
 
 ### Install [oh-my-fish](https://github.com/oh-my-fish/oh-my-fish)
@@ -82,4 +83,9 @@ npm install -g typescript typescript-language-server dockerfile-language-server-
 
 ```bash
 go install golang.org/x/tools/gopls@latest
+```
+
+### Update bat theme cache
+```bash
+bat cache --build
 ```

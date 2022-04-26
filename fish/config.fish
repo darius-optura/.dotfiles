@@ -7,12 +7,12 @@ alias vim="nvim"
 alias cat="bat"
 alias grep='grep --colour=auto'
 alias egrep='egrep--colour=auto'
-alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 alias la='ls -a'
 alias ll='ls -l'
 alias lal='ls -al'
 alias dirs='dirs -v'
 alias cat='bat'
+alias gg='lazygit'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
 alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 
