@@ -16,7 +16,7 @@ Assuming you already have `homebrew` installed we can proceed with the instalati
 ### Install packages
 
 ```bash
-brew install fish tmux neovim bat starship
+brew install fish tmux neovim bat starship fd ripgrep fzf
 ```
 
 ```bash
@@ -30,7 +30,7 @@ brew tap homebrew/cask-fonts && brew install --cask font-hack-nerd-font
 ### Clone repo in `~/.dotfiles`
 
 ```bash
-git clone git@github.com:cupsadarius/dotfiles.git ~/.dotfiles
+git clone --recursive git@github.com:cupsadarius/dotfiles.git ~/.dotfiles
 ```
 
 ### Symlink config files to `~/.config`
