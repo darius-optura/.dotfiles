@@ -75,7 +75,7 @@ git clone --depth 1 https://github.com/wbthomason/packer.nvim\
  ~/.local/share/nvim/site/pack/packer/start/packer.nvim
  ```
 
-### Install Language Servers
+### Install [LSP](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md) 
 
 ```bash
 npm install -g typescript typescript-language-server dockerfile-language-server-nodejs vscode-langservers-extracted
