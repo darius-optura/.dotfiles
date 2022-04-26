@@ -37,6 +37,8 @@ return require('packer').startup(function()
   use 'saadparwaiz1/cmp_luasnip' -- Snippets source for nvim-cmp
   use 'L3MON4D3/LuaSnip' -- Snippets plugin  
   use 'onsails/lspkind.nvim'
+  use 'github/copilot.vim'
+  use 'hrsh7th/cmp-copilot'
   -- use 'cupsadarius/vim-horizon'
   -- use 'morhetz/gruvbox'
   -- use 'drewtempelmeyer/palenight.vim'

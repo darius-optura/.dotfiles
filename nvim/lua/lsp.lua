@@ -19,6 +19,7 @@ local source_mapping = {
 	nvim_lua = "[Lua]",
 	cmp_tabnine = "[TN]",
 	path = "[Path]",
+  copilot = "[Copilot]",
 }
 local lspkind = require("lspkind")
 
@@ -79,6 +80,8 @@ cmp.setup({
 		{ name = "luasnip" },
 
 		{ name = "buffer" },
+
+    { name = "copilot" }
 	},
 })
 
