@@ -1,0 +1,3 @@
+[submodule "bat/themes/Cattpuccin"]
+	path = bat/themes/Cattpuccin
+	url = git@github.com:catppuccin/sublime-text.git
