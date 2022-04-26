@@ -16,7 +16,7 @@ Assuming you already have `homebrew` installed we can proceed with the instalati
 ### Install packages
 
 ```bash
-brew install fish tmux neovim bat starship fd ripgrep fzf
+brew install fish tmux neovim bat starship fd ripgrep fzf git-delta
 ```
 
 ```bash
