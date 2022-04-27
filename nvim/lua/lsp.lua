@@ -118,6 +118,7 @@ vim.api.nvim_set_keymap('n', '<leader>ws', '<cmd>lua require("telescope.builtin"
 vim.api.nvim_set_keymap('n', '<leader>bs', '<cmd>lua require("telescope.builtin").lsp_document_symbols()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'gr', '<cmd>lua require("telescope.builtin").lsp_references()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>D', '<cmd>lua require("telescope.builtin").lsp_type_definitions()<CR>', opts)
+vim.api.nvim_set_keymap('n', '<leader>es', '<cmd>EslintFixAll<CR>', opts)
 
 require("lspconfig").tsserver.setup(config())
 
