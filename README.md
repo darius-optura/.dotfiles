@@ -86,6 +86,17 @@ npm install -g typescript typescript-language-server dockerfile-language-server-
 go install golang.org/x/tools/gopls@latest
 ```
 
+### Install vim plugins
+
+```bash
+vim +PackerSync +GlowInstall
+```
+
+After opening vim you can install the nodejs debugger
+```vim
+:VimspectorInstall vscode-node-debug2
+```
+
 ### Update bat theme cache
 ```bash
 bat cache --build
