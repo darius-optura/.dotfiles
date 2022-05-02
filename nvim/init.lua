@@ -29,6 +29,7 @@ return require('packer').startup(function()
   use 'puremourning/vimspector'
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
+  use 'asbjornhaland/telescope-send-to-harpoon.nvim'
   use 'kdheepak/lazygit.nvim'
   use 'neovim/nvim-lspconfig'
   use 'hrsh7th/nvim-cmp' -- Autocompletion plugin

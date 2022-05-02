@@ -21,6 +21,10 @@ telescope.setup{
       mappings = {
         i = {
           ["<M-d>"] = "delete_buffer",
+          ["<C-h>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
+        },
+        n = {
+          ["<C-h>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
         }
       }
     }
@@ -29,6 +33,8 @@ telescope.setup{
 
 telescope.load_extension("git_worktree")
 telescope.load_extension("fzf")
+telescope.load_extension("harpoon")
+telescope.load_extension("send_to_harpoon")
 
 vim.api.nvim_set_keymap('n', '<leader>ff', "<cmd>lua require('telescope.builtin').find_files()<CR>", { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>fg', "<cmd>lua require('telescope.builtin').live_grep()<CR>", { noremap = true })
