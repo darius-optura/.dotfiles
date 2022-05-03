@@ -22,6 +22,8 @@ require'nvim-treesitter.configs'.setup {
   }
 }
 
+vim.notify = require("notify")
+
 return require('packer').startup(function()
   -- PLUGIN MANAGER 
   use 'wbthomason/packer.nvim'
