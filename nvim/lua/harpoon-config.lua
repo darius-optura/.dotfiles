@@ -22,7 +22,7 @@ harpoon.setup({
   }
 })
 
-vim.api.nvim_set_keymap('n', '<leader>hm', '<cmd>Telescope harpoon marks<CR>', { noremap = true })
+vim.api.nvim_set_keymap('n', '<leader>hm', '<cmd>lua require("harpoon.ui").toggle_quick_menu()<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>ha', '<cmd>lua require("harpoon.mark").add_file()<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>hh', '<cmd>lua require("harpoon.ui").nav_prev()<CR>', { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>hl', '<cmd>lua require("harpoon.ui").nav_next()<CR>', { noremap = true })

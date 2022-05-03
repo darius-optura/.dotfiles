@@ -114,6 +114,9 @@ tabnine:setup({
 	snippet_placeholder = "..",
 })
 
+require("nvim-lsp-installer").setup {}
+local lspConfig = require("lspconfig");
+
 local function config(_config)
 	return vim.tbl_deep_extend("force", {
 		capabilities = require("cmp_nvim_lsp").update_capabilities(vim.lsp.protocol.make_client_capabilities()),
@@ -130,8 +133,8 @@ end
 
 vim.api.nvim_set_keymap('n', '<leader>e', '<cmd>lua vim.diagnostic.open_float()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>q', '<cmd>lua vim.diagnostic.setloclist()<CR>', opts)
-vim.api.nvim_set_keymap('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', opts)
-vim.api.nvim_set_keymap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', opts)
+vim.api.nvim_set_keymap('n', '[', '<cmd>lua vim.diagnostic.goto_prev()<CR>', opts)
+vim.api.nvim_set_keymap('n', ']', '<cmd>lua vim.diagnostic.goto_next()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'gd', '<cmd>lua require("telescope.builtin").lsp_definitions()<CR>', opts)
 vim.api.nvim_set_keymap('n', 'gi', '<cmd>lua require("telescope.builtin").lsp_implementations()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>ws', '<cmd>lua require("telescope.builtin").lsp_dynamic_workspace_symbols()<CR>', opts)
@@ -140,17 +143,17 @@ vim.api.nvim_set_keymap('n', 'gr', '<cmd>lua require("telescope.builtin").lsp_re
 vim.api.nvim_set_keymap('n', '<leader>D', '<cmd>lua require("telescope.builtin").lsp_type_definitions()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>es', '<cmd>EslintFixAll<CR>', opts)
 
-require("lspconfig").tsserver.setup(config())
+lspConfig.tsserver.setup(config())
 
-require("lspconfig").dockerls.setup(config())
+lspConfig.dockerls.setup(config())
 
-require("lspconfig").cssls.setup(config())
+lspConfig.cssls.setup(config())
 
-require("lspconfig").html.setup(config())
+lspConfig.html.setup(config())
 
-require("lspconfig").eslint.setup(config())
+lspConfig.eslint.setup(config())
 
-require("lspconfig").gopls.setup(config({
+lspConfig.gopls.setup(config({
 	cmd = { "gopls", "serve" },
 	settings = {
 		gopls = {
@@ -162,4 +165,12 @@ require("lspconfig").gopls.setup(config({
 	},
 }))
 
+lspConfig.cssls.setup(config())
 
+lspConfig.yamlls.setup(config())
+
+lspConfig.jsonls.setup(config())
+
+lspConfig.sqlls.setup(config())
+
+lspConfig.sumneko_lua.setup(config())
