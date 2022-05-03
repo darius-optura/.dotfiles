@@ -10,6 +10,11 @@ telescope.setup{
       override_generic_sorter = false,
       override_file_sorter = true,
       case_mode = "smart_case"
+    },
+    ["ui-select"] = {
+      require("telescope.themes").get_dropdown {
+        -- even more opts
+      }
     }
   },
   pickers = {
@@ -35,6 +40,8 @@ telescope.load_extension("git_worktree")
 telescope.load_extension("fzf")
 telescope.load_extension("harpoon")
 telescope.load_extension("send_to_harpoon")
+telescope.load_extension("ui-select")
+telescope.load_extension("refactoring")
 
 vim.api.nvim_set_keymap('n', '<leader>ff', "<cmd>lua require('telescope.builtin').find_files()<CR>", { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>fg', "<cmd>lua require('telescope.builtin').live_grep()<CR>", { noremap = true })

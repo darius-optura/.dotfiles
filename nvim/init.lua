@@ -5,6 +5,7 @@ require('lsp')
 require('harpoon-config')
 require('debug-config')
 require('git')
+require('refactoring-config')
 require('lualine').setup()
 
 require'nvim-treesitter.configs'.setup {
@@ -22,7 +23,7 @@ require'nvim-treesitter.configs'.setup {
 
 return require('packer').startup(function()
   use 'wbthomason/packer.nvim'
-  use 'folke/tokyonight.nvim'
+  -- use 'folke/tokyonight.nvim'
   use 'nvim-treesitter/nvim-treesitter' 
   use 'tpope/vim-commentary'
   use 'JoosepAlviste/nvim-ts-context-commentstring'
@@ -38,8 +39,8 @@ return require('packer').startup(function()
   use 'saadparwaiz1/cmp_luasnip' -- Snippets source for nvim-cmp
   use 'L3MON4D3/LuaSnip' -- Snippets plugin  
   use 'onsails/lspkind.nvim'
-  use 'github/copilot.vim'
-  use 'hrsh7th/cmp-copilot'
+  -- use 'github/copilot.vim'
+  -- use 'hrsh7th/cmp-copilot'
   -- use 'cupsadarius/vim-horizon'
   -- use 'morhetz/gruvbox'
   -- use 'drewtempelmeyer/palenight.vim'
@@ -65,5 +66,13 @@ return require('packer').startup(function()
     'nvim-telescope/telescope-fzf-native.nvim',
     run = 'make'
   }
+  use {'nvim-telescope/telescope-ui-select.nvim' }
   use {"ellisonleao/glow.nvim", branch = 'main'}
+  use {
+    "ThePrimeagen/refactoring.nvim",
+    requires = {
+        {"nvim-lua/plenary.nvim"},
+        {"nvim-treesitter/nvim-treesitter"}
+    }
+  }
 end)
