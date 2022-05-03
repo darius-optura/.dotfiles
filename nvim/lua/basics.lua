@@ -39,7 +39,7 @@ vim.api.nvim_set_keymap("n", "<leader>t", ":sp<CR> :term<CR> :resize 20N<CR> i",
 vim.api.nvim_set_keymap("t", "<Esc>", "<C-\\><C-n>", {noremap = true, silent = true})
 vim.api.nvim_set_keymap("n", '<leader><CR>', ':source $HOME/.config/nvim/init.lua<CR>', {noremap = true })
 vim.api.nvim_set_keymap("n", "<leader>mp", "<cmd>Glow<CR>", { noremap = true });
-
+vim.api.nvim_set_keymap("n", "<leader>td", "<cmd>TodoTelescope<CR>", {noremap = true })
 vim.g["netrw_banner"] = 0
 vim.g["netrw_liststyle"] = 3
 vim.g["netrw_winsize"] = 25

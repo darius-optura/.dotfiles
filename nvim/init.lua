@@ -6,6 +6,7 @@ require('harpoon-config')
 require('debug-config')
 require('git')
 require('refactoring-config')
+require('hop-config')
 require('lualine').setup()
 
 require'nvim-treesitter.configs'.setup {
@@ -114,4 +115,25 @@ return require('packer').startup(function()
   -- MARKDOWN
 
   use {"ellisonleao/glow.nvim", branch = 'main'}
+
+  -- TODOS
+
+  use {
+    "folke/todo-comments.nvim",
+    requires = "nvim-lua/plenary.nvim",
+    config = function()
+      require("todo-comments").setup {}
+  end
+  }
+
+  -- MOTIONS
+
+  use {
+    'phaazon/hop.nvim',
+    branch = 'v1', -- optional but strongly recommended
+    config = function()
+      -- you can configure Hop the way you like here; see :h hop-config
+      require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
+    end
+  }
 end)

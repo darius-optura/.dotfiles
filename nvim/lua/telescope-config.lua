@@ -42,6 +42,7 @@ telescope.load_extension("harpoon")
 telescope.load_extension("send_to_harpoon")
 telescope.load_extension("ui-select")
 telescope.load_extension("refactoring")
+telescope.load_extension("todo-comments")
 
 vim.api.nvim_set_keymap('n', '<leader>ff', "<cmd>lua require('telescope.builtin').find_files()<CR>", { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>fg', "<cmd>lua require('telescope.builtin').live_grep()<CR>", { noremap = true })
