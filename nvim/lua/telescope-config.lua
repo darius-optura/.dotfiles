@@ -42,7 +42,6 @@ telescope.load_extension("harpoon")
 telescope.load_extension("send_to_harpoon")
 telescope.load_extension("ui-select")
 telescope.load_extension("refactoring")
-telescope.load_extension("todo-comments")
 
 vim.api.nvim_set_keymap('n', '<leader>ff', "<cmd>lua require('telescope.builtin').find_files()<CR>", { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>fg', "<cmd>lua require('telescope.builtin').live_grep()<CR>", { noremap = true })
@@ -50,3 +49,4 @@ vim.api.nvim_set_keymap('n', '<leader>fb', "<cmd>lua require('telescope.builtin'
 vim.api.nvim_set_keymap('n', '<leader>cb', "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<CR>", { noremap = true })
 vim.api.nvim_set_keymap('n', '<leader>gc', "<cmd>lua require('telescope.builtin').git_status()<CR>", {noremap = true})
 vim.api.nvim_set_keymap('n', '<leader>s', '<cmd>lua require("telescope.builtin").current_buffer_fuzzy_find()<CR>', {noremap = true})
+vim.api.nvim_set_keymap('n', '<leader>r', '<cmd>lua require("telescope.builtin").registers()<CR>', {noremap = true})
