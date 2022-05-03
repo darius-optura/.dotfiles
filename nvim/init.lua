@@ -57,6 +57,7 @@ return require('packer').startup(function()
   use 'asbjornhaland/telescope-send-to-harpoon.nvim'
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
+  use 'rcarriga/nvim-notify'
 
   -- COMENTS
 
