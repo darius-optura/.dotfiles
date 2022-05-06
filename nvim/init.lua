@@ -45,6 +45,8 @@ return require('packer').startup(function()
       require"lualine".setup {theme = 'catppuccin' }
     end
   }
+  use "lukas-reineke/indent-blankline.nvim"
+
 
   -- TELESCOPE
   use {
