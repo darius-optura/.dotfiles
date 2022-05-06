@@ -130,6 +130,10 @@ return require('packer').startup(function()
   }
 
   -- MOTIONS
+  use {
+    'mg979/vim-visual-multi',
+    branch = 'master'
+  }
 
   use {
     'phaazon/hop.nvim',

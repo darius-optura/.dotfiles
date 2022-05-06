@@ -36,6 +36,9 @@ export PATH="$PATH:$HOME/.rvm/bin"
 export BAT_THEME="Catppuccin"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 
+export KUBECONFIG="$HOME/.config/kube/kubeconfig.yml"
+
+
 starship init fish | source
 
 # The next line updates PATH for the Google Cloud SDK.

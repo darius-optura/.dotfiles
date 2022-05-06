@@ -26,10 +26,10 @@ telescope.setup{
       mappings = {
         i = {
           ["<M-d>"] = "delete_buffer",
-          ["<C-h>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
+          ["<C-z>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
         },
         n = {
-          ["<C-h>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
+          ["<C-z>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
         }
       }
     }
