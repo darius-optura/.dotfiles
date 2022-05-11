@@ -16,6 +16,10 @@ alias gg='lazygit'
 alias python='python3'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
 alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
+alias k='kubectl'
+alias klf='kubectl logs -f'
+alias kp='kubectl get pods'
+alias kfw='kubectl port-forward'
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
