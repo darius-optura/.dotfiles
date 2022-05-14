@@ -20,6 +20,9 @@ alias k='kubectl'
 alias klf='kubectl logs -f'
 alias kp='kubectl get pods'
 alias kfw='kubectl port-forward'
+alias kd='kubectl describe'
+alias tks='tmux kill-session -t'
+alias tls='tmux list-sessions'
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml

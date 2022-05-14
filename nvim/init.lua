@@ -2,6 +2,7 @@ require('basics')
 require('colors')
 require('telescope-config')
 require('lsp')
+require('snippets')
 require('harpoon-config')
 require('debug-config')
 require('git')
@@ -114,6 +115,7 @@ return require('packer').startup(function()
   use 'hrsh7th/cmp-nvim-lsp' -- LSP source for nvim-cmp
   use 'saadparwaiz1/cmp_luasnip' -- Snippets source for nvim-cmp
   use 'L3MON4D3/LuaSnip' -- Snippets plugin
+  use "rafamadriz/friendly-snippets"
   -- use 'github/copilot.vim'
   -- use 'hrsh7th/cmp-copilot'
 
