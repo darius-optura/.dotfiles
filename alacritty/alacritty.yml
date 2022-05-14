@@ -149,6 +149,8 @@ key_bindings:
   - { key: Right, mods: Command, chars: "\x02\x1b[C" }
   # Install plugins
   - { key: I, mods: Command|Shift, chars: "\x02\x49" } 
+  # Tmux windowizer
+  - { key: F, mods: Command, chars: "\x02\x66" }
 # Shell
 
 # You can set `shell.program` to the path of your favorite shell, e.g.
