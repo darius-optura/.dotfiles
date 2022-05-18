@@ -35,7 +35,7 @@ ls.add_snippets(nil, {
       "- Date: "}), func(date, {}), text({"",
       "- Revision: "}), insert(4, "revision"), text({"", "",
       "---", "", "",
-			"## Creativity and inovation", "",
+			"## Creativity and innovation", "",
 			"## Adaptability", "",
 			"## Communication", "",
 			"## Accountability", "",
@@ -44,7 +44,6 @@ ls.add_snippets(nil, {
 			"## Achievement", "",
 			"## Cooperation", "",
 			"## Improvement", "",
-			"## Interpersonal skills", "",
 			"## Problem solving"})
     })
   }

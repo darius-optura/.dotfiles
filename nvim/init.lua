@@ -92,6 +92,7 @@ return require('packer').startup(function()
   -- TREESITTER
 
   use 'nvim-treesitter/nvim-treesitter'
+  use 'nvim-treesitter/nvim-treesitter-textobjects'
 
   -- DEBUGING
 

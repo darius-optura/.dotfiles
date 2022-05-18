@@ -24,7 +24,7 @@ alias kd='kubectl describe'
 alias tks='tmux kill-session -t'
 alias tls='tmux list-sessions'
 alias tns='tmux new-session -ds'
-
+alias lzd='lazydocker'
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
  

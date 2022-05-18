@@ -153,3 +153,5 @@ lspConfig.jsonls.setup(config())
 lspConfig.sqlls.setup(config())
 
 lspConfig.sumneko_lua.setup(config())
+
+lspConfig.prosemd_lsp.setup(config())
