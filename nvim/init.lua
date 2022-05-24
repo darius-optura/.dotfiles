@@ -148,4 +148,8 @@ return require('packer').startup(function()
       require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
     end
   }
+
+  -- TRACKING
+
+  use 'wakatime/vim-wakatime'
 end)
