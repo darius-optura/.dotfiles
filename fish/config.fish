@@ -48,6 +48,6 @@ export KUBECONFIG="./kubeconfig.yml"
 
 
 starship init fish | source
-
+zoxide init fish | source
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
