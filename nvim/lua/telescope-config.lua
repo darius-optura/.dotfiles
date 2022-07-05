@@ -2,7 +2,12 @@ local telescope = require("telescope")
 
 telescope.setup{
   defaults = {
-    file_ignore_patterns = { "yarn.lock", "package-lock.json", "node_modules", ".git" }
+    file_ignore_patterns = { "yarn.lock", "package-lock.json", "node_modules", ".git" },
+    mappings = {
+      i = {
+        ["<C-h>"] = telescope.extensions.send_to_harpoon.actions.send_selected_to_harpoon
+      },
+    }
   },
   extensions = {
     fzf = {
@@ -25,9 +30,8 @@ telescope.setup{
       -- previewer = false,
       mappings = {
         i = {
-          ["<M-d>"] = "delete_buffer",
-          ["<C-`>"] = require'telescope'.extensions.send_to_harpoon.actions.send_selected_to_harpoon
-        },
+          ["<D-d>"] = "delete_buffer"
+        }
       }
     }
   }
