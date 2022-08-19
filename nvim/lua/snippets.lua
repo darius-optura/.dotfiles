@@ -46,9 +46,19 @@ ls.add_snippets(nil, {
 			"## Improvement", "",
 			"## Problem solving"})
     })
+  },
+  go = {
+    snip({
+      trig = "iferr",
+      name = "Error check",
+      descr = "Golang error checking"
+    },{
+      text({"if err != nil {",
+        "  return nil, err",
+      "}"})
+    })
   }
 })
-
 
 local keymap = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = true }
