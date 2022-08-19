@@ -26,7 +26,7 @@ telescope.setup{
     buffers = {
       show_all_buffers = true,
       sort_lastused = true,
-      -- theme = "dropdown",
+      theme = "dropdown",
       -- previewer = false,
       mappings = {
         i = {
