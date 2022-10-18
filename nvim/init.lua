@@ -10,7 +10,7 @@ require('refactoring-config')
 require('hop-config')
 require('lualine').setup()
 
-require'nvim-treesitter.configs'.setup {
+require 'nvim-treesitter.configs'.setup {
   ensure_installed = "all",
   context_commentstring = {
     enable = true
@@ -26,7 +26,7 @@ require'nvim-treesitter.configs'.setup {
 vim.notify = require("notify")
 
 return require('packer').startup(function()
-  -- PLUGIN MANAGER 
+  -- PLUGIN MANAGER
   use 'wbthomason/packer.nvim'
 
   -- THEME
@@ -35,15 +35,15 @@ return require('packer').startup(function()
   -- use 'morhetz/gruvbox'
   -- use 'drewtempelmeyer/palenight.vim'
   use({
-	  "catppuccin/nvim",
-	  as = "catppuccin"
+    "catppuccin/nvim",
+    as = "catppuccin"
   })
   -- use 'folke/tokyonight.nvim'
   use {
     'nvim-lualine/lualine.nvim',
-    requires = {'kyazdani42/nvim-web-devicons', opt = true},
+    requires = { 'kyazdani42/nvim-web-devicons', opt = true },
     config = function()
-      require"lualine".setup {theme = 'catppuccin' }
+      require "lualine".setup { theme = 'catppuccin' }
     end
   }
   use "lukas-reineke/indent-blankline.nvim"
@@ -52,13 +52,13 @@ return require('packer').startup(function()
   -- TELESCOPE
   use {
     'nvim-telescope/telescope.nvim',
-    requires = { {'nvim-lua/plenary.nvim'} }
+    requires = { { 'nvim-lua/plenary.nvim' } }
   }
   use {
     'nvim-telescope/telescope-fzf-native.nvim',
     run = 'make'
   }
-  use {'nvim-telescope/telescope-ui-select.nvim' }
+  use { 'nvim-telescope/telescope-ui-select.nvim' }
   use 'asbjornhaland/telescope-send-to-harpoon.nvim'
   use 'ThePrimeagen/git-worktree.nvim'
   use 'ThePrimeagen/harpoon'
@@ -78,15 +78,22 @@ return require('packer').startup(function()
   use {
     "ThePrimeagen/refactoring.nvim",
     requires = {
-        {"nvim-lua/plenary.nvim"},
-        {"nvim-treesitter/nvim-treesitter"}
+      { "nvim-lua/plenary.nvim" },
+      { "nvim-treesitter/nvim-treesitter" }
     }
   }
   use {
     "ur4ltz/surround.nvim",
     config = function()
-      require"surround".setup {mappings_style = "surround"}
+      require "surround".setup { mappings_style = "surround" }
     end
+  }
+  use "mbbill/undotree"
+  use {
+    'nvim-tree/nvim-tree.lua',
+    requires = {
+      'nvim-tree/nvim-web-devicons', -- optional, for file icons
+    },
   }
 
   -- TREESITTER
@@ -113,17 +120,18 @@ return require('packer').startup(function()
 
   -- AUTOCOMPLETE
   use 'hrsh7th/nvim-cmp' -- Autocompletion plugin
-  use {'tzachar/cmp-tabnine', run='./install.sh', requires = 'hrsh7th/nvim-cmp'}
+  use { 'tzachar/cmp-tabnine', run = './install.sh', requires = 'hrsh7th/nvim-cmp' }
   use 'hrsh7th/cmp-nvim-lsp' -- LSP source for nvim-cmp
   use 'saadparwaiz1/cmp_luasnip' -- Snippets source for nvim-cmp
   use 'L3MON4D3/LuaSnip' -- Snippets plugin
   use "rafamadriz/friendly-snippets"
   -- use 'github/copilot.vim'
   -- use 'hrsh7th/cmp-copilot'
+  -- Lua
 
   -- MARKDOWN
 
-  use {"ellisonleao/glow.nvim", branch = 'main'}
+  use { "ellisonleao/glow.nvim", branch = 'main' }
 
   -- TODOS
 
@@ -132,7 +140,7 @@ return require('packer').startup(function()
     requires = "nvim-lua/plenary.nvim",
     config = function()
       require("todo-comments").setup {}
-  end
+    end
   }
 
   -- MOTIONS
@@ -146,7 +154,7 @@ return require('packer').startup(function()
     branch = 'v1', -- optional but strongly recommended
     config = function()
       -- you can configure Hop the way you like here; see :h hop-config
-      require'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
+      require 'hop'.setup { keys = 'etovxqpdygfblzhckisuran' }
     end
   }
 

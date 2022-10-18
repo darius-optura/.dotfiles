@@ -10,5 +10,5 @@ function __trap_exit_tmux
 end
 
 if status --is-interactive
-	trap __trap_exit_tmux SIGINT INT EXIT
+	trap __trap_exit_tmux SIGKILL SIGINT INT EXIT
 end
