@@ -95,6 +95,8 @@ tabnine:setup({
 
 require("nvim-lsp-installer").setup {}
 local lspConfig = require("lspconfig");
+local configs = require('lspconfig.configs')
+local util = require('lspconfig.util')
 
 local function config(_config)
 	return vim.tbl_deep_extend("force", {
@@ -105,7 +107,7 @@ local function config(_config)
       vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>h', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
       vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
       vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>.', '<cmd>lua vim.lsp.buf.code_action()<CR>', opts)
-      vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>f', '<cmd>lua vim.lsp.buf.formatting()<CR>', opts)
+      vim.api.nvim_buf_set_keymap(bufnr, 'n', '<leader>fr', '<cmd>lua vim.lsp.buf.format({async=true})<CR>', opts)
 		end,
 	}, _config or {})
 end
@@ -121,6 +123,19 @@ vim.api.nvim_set_keymap('n', '<leader>bs', '<cmd>lua require("telescope.builtin"
 vim.api.nvim_set_keymap('n', 'gr', '<cmd>lua require("telescope.builtin").lsp_references()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>D', '<cmd>lua require("telescope.builtin").lsp_type_definitions()<CR>', opts)
 vim.api.nvim_set_keymap('n', '<leader>es', '<cmd>EslintFixAll<CR>', opts)
+
+if not configs.helm_ls then
+  configs.helm_ls = {
+    default_config = {
+      cmd = {"helm_ls", "serve"},
+      filetypes = {'helm'},
+      root_dir = function(fname)
+        return util.root_pattern('Chart.yaml')(fname)
+      end,
+    },
+  }
+end
+
 
 lspConfig.tsserver.setup(config())
 
@@ -152,6 +167,11 @@ lspConfig.jsonls.setup(config())
 
 lspConfig.sqlls.setup(config())
 
-lspConfig.sumneko_lua.setup(config())
+lspConfig.lua_ls.setup(config())
 
 lspConfig.prosemd_lsp.setup(config())
+
+lspConfig.helm_ls.setup(config({
+  filetypes = {"helm"},
+  cmd = {"helm_ls", "serve"},
+}))

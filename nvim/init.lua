@@ -4,10 +4,11 @@ require('telescope-config')
 require('lsp')
 require('snippets')
 require('harpoon-config')
-require('debug-config')
+-- require('debug-config')
 require('git')
 require('refactoring-config')
 require('hop-config')
+require('tree')
 require('lualine').setup()
 
 require 'nvim-treesitter.configs'.setup {
@@ -90,7 +91,7 @@ return require('packer').startup(function()
   }
   use "mbbill/undotree"
   use {
-    'nvim-tree/nvim-tree.lua',
+    "nvim-tree/nvim-tree.lua",
     requires = {
       'nvim-tree/nvim-web-devicons', -- optional, for file icons
     },
@@ -101,10 +102,16 @@ return require('packer').startup(function()
   use 'nvim-treesitter/nvim-treesitter'
   use 'nvim-treesitter/nvim-treesitter-textobjects'
   use 'nvim-treesitter/nvim-treesitter-context'
-
+  use({
+    'Wansmer/treesj',
+    requires = { 'nvim-treesitter' },
+    config = function()
+      require('treesj').setup({--[[ your config ]]})
+    end,
+  })
   -- DEBUGING
 
-  use 'puremourning/vimspector'
+  -- use 'puremourning/vimspector'
   -- use 'mfussenegger/nvim-dap'
   -- use 'leoluz/nvim-dap-go'
   -- use 'rcarriga/nvim-dap-ui'
@@ -117,6 +124,7 @@ return require('packer').startup(function()
   use 'williamboman/nvim-lsp-installer'
   use 'neovim/nvim-lspconfig'
   use 'onsails/lspkind.nvim'
+  use 'towolf/vim-helm'
 
   -- AUTOCOMPLETE
   use 'hrsh7th/nvim-cmp' -- Autocompletion plugin
