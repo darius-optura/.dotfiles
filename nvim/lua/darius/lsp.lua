@@ -93,6 +93,7 @@ capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 require('mason').setup()
 -- Ensure the servers above are installed
 local mason_lspconfig = require 'mason-lspconfig'
+local lspconfig = require 'lspconfig'
 local config = require 'lspconfig.configs'
 local util = require 'lspconfig.util'
 
@@ -112,9 +113,16 @@ mason_lspconfig.setup {
   ensure_installed = vim.tbl_keys(servers),
 }
 -- helm ls is a custom server that does not need to be installed by mason
+-- see https://github.com/mrjosh/helm-ls
 servers['helm_ls'] = {
   filetypes = { "helm" },
   cmd = { "helm_ls", "serve" },
+}
+
+lspconfig.helm_ls.setup {
+  capabilities = capabilities,
+  on_attach = on_attach,
+  settings = servers['helm_ls']
 }
 
 mason_lspconfig.setup_handlers {
