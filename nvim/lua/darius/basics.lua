@@ -53,3 +53,9 @@ vim.o.termguicolors = true
 vim.o.incsearch = true
 
 vim.o.scrolloff = 8
+
+vim.o.tabstop = 2
+vim.o.shiftwidth = 2
+vim.o.numberwidth = 4
+vim.o.colorcolumn = '80'
+vim.o.showtabline = 2

@@ -71,6 +71,7 @@ local servers = {
   cssls = {},
   html = {},
   jsonls = {},
+  pyright = {},
   sqlls = {},
   yamlls = {},
   eslint = {},
@@ -108,7 +109,6 @@ if not config.helm_ls then
     },
   }
 end
-
 mason_lspconfig.setup {
   ensure_installed = vim.tbl_keys(servers),
 }

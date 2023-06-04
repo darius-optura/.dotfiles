@@ -11,24 +11,24 @@ gui:
   mainPanelSplitMode: flexible
   language: auto
   theme:
-    lightTheme: false
+    lightTheme: false 
     activeBorderColor:
-    - green
-    - bold
+      - "#a6e3a1" # Green
+      - bold
     inactiveBorderColor:
-    - white
+      - "#cdd6f4" # Text
     optionsTextColor:
-    - blue
+      - "#89b4fa" # Blue
     selectedLineBgColor:
-    - default
+      - "#313244" # Surface0
     selectedRangeBgColor:
-    - blue
+      - "#313244" # Surface0
     cherryPickedCommitBgColor:
-    - blue
+      - "#94e2d5" # Teal
     cherryPickedCommitFgColor:
-    - cyan
+      - "#89b4fa" # Blue
     unstagedChangesColor:
-    - red
+      - red       # Red
   commitLength:
     show: true
   skipNoStagedFilesWarning: false
