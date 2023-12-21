@@ -97,6 +97,9 @@ require('lazy').setup({
     priority = 1000,
     config = function()
       vim.cmd.colorscheme 'catppuccin'
+      vim.cmd.highlight([[Normal ctermbg=none guibg=none]])
+      vim.cmd.highlight([[NormalFloat ctermbg=none guibg=none]])
+      vim.cmd.highlight([[TelescopeNormal ctermbg=none guibg=none]])
     end,
   },
 
@@ -117,11 +120,12 @@ require('lazy').setup({
   {
     -- Add indentation guides even on blank lines
     'lukas-reineke/indent-blankline.nvim',
+    main = "ibl",
     -- Enable `lukas-reineke/indent-blankline.nvim`
     -- See `:help indent_blankline.txt`
     opts = {
-      char = '┊',
-      show_trailing_blankline_indent = false,
+      -- char = '┊',
+      -- show_trailing_blankline_indent = false,
     },
   },
 

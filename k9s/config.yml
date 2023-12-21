@@ -1,13 +1,21 @@
 k9s:
+  liveViewAutoRefresh: false
   refreshRate: 2
   maxConnRetry: 5
   enableMouse: false
+  enableImageScan: false
   headless: false
   logoless: false
   crumbsless: false
   readOnly: false
   noExitOnCtrlC: false
   noIcons: false
+  shellPod:
+    image: busybox:1.35.0
+    namespace: default
+    limits:
+      cpu: 100m
+      memory: 100Mi
   skipLatestRevCheck: false
   logger:
     tail: 100
@@ -18,29 +26,20 @@ k9s:
     showTime: false
   currentContext: kubernetes-admin@cluster-ns-v2
   currentCluster: cluster-ns-v2
+  keepMissingClusters: false
   clusters:
     cluster-ns-v2:
       namespace:
-        active: master-trainer-v3
+        active: all
         lockFavorites: false
         favorites:
-        - master-trainer-v3
         - all
-        - master-trainer
+        - master-trainer-v3
         - default
       view:
         active: nodes
       featureGates:
         nodeShell: false
-      shellPod:
-        image: busybox:1.35.0
-        command: []
-        args: []
-        namespace: default
-        limits:
-          cpu: 100m
-          memory: 100Mi
-        labels: {}
       portForwardAddress: localhost
   thresholds:
     cpu:
@@ -50,3 +49,4 @@ k9s:
       critical: 90
       warn: 70
   screenDumpDir: /var/folders/4q/vz8j0lpn4bv00nbd97z7pm5r0000gn/T/k9s-screens-darius
+  disablePodCounting: false
