@@ -7,9 +7,11 @@ alias vim="nvim"
 alias cat="bat"
 alias grep='grep --colour=auto'
 alias egrep='egrep--colour=auto'
-alias la='ls -a'
-alias ll='ls -l'
-alias lal='ls -al'
+# alias la='ls -a'
+# alias ll='ls -l'
+# alias lal='ls -al'
+alias ll="exa -l -g --icons --git"
+alias llt="exa -1 --icons --tree --git-ignore"
 alias dirs='dirs -v'
 alias cat='bat'
 alias gg='lazygit'
@@ -25,6 +27,8 @@ alias tks='tmux kill-session -t'
 alias tls='tmux list-sessions'
 alias tns='tmux new-session -ds'
 alias lzd='lazydocker'
+alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules | fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}' | xargs nvim"
+
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
  
@@ -44,7 +48,8 @@ export PATH="$PATH:/usr/sbin"
 
 export BAT_THEME="Catppuccin"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
-
+export K9SCONFIG="$HOME/.config/k9s"
+export K9S_CONFIG_PATH="$HOME/.config/k9s"
 export KUBECONFIG="./kubeconfig.yml"
 
 
@@ -52,3 +57,7 @@ starship init fish | source
 zoxide init fish | source
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
+
+# bun
+set --export BUN_INSTALL "$HOME/.bun"
+set --export PATH $BUN_INSTALL/bin $PATH
