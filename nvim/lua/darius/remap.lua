@@ -9,7 +9,6 @@ vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = tr
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
 vim.keymap.set('n', '<leader>n', vim.cmd.Ex, {desc = "Open file manager" })
-vim.keymap.set('n', '<leader>u', ':UndotreeToggle<CR>', {desc = "Undo tree" })
 
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv", {desc = "Move selected range up"})
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", {desc = "Move selected range down"})
@@ -53,4 +52,3 @@ vim.keymap.set("n", "<leader>so", function()
     vim.cmd("so")
 end, { desc = "Reload nvim config" })
 
-vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', {noremap = true})
