@@ -59,3 +59,6 @@ vim.o.numberwidth = 4
 vim.o.colorcolumn = '80'
 vim.o.showtabline = 2
 
+vim.g.netrw_browse_split = 0
+vim.g.netrw_banner = 0
+vim.g.netrw_winsize = 25
