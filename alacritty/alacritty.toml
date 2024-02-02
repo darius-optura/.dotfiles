@@ -1,0 +1,205 @@
+live_config_reload = true
+import = [
+  # uncomment the flavour you want below:
+  # "~/.dotfiles/alacritty/catppuccin-mocha.toml"
+  # "~/.dotfiles/alacritty/catppuccin-macchiato.toml"
+  # "~/.dotfiles/alacritty/catppuccin-frappe.toml"
+  # "~/.dotfiles/alacritty/catppuccin-latte.toml"
+  "~/.dotfiles/alacritty/rose-pine-moon.toml"
+]
+
+[env]
+TERM = "xterm-256color"
+
+
+[font]
+size = 15
+
+[font.bold]
+style = "Bold"
+
+[font.bold_italic]
+style = "Bold Italic"
+
+[font.italic]
+style = "Italic"
+
+[font.normal]
+family = "FiraCode Nerd Font Mono"
+style = "Regular"
+
+[[keyboard.bindings]]
+chars = "\u0002,"
+key = "Comma"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002s"
+key = "K"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00021"
+key = "Key1"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00022"
+key = "Key2"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00023"
+key = "Key3"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00024"
+key = "Key4"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00025"
+key = "Key5"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00026"
+key = "Key6"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00027"
+key = "Key7"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00028"
+key = "Key8"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u00029"
+key = "Key9"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002L"
+key = "L"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002["
+key = "LBracket"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002p"
+key = "LBracket"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = "\u0002%"
+key = "N"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = "\u0002\""
+key = "N"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002d"
+key = "Q"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002n"
+key = "RBracket"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = """
+\u001B:w
+"""
+key = "S"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002c"
+key = "T"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002!"
+key = "T"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = "\u0002x"
+key = "W"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002z"
+key = "Z"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002r"
+key = "R"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002M"
+key = "M"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[A"
+key = "Up"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[B"
+key = "Down"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[D"
+key = "Left"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002\u001B[C"
+key = "Right"
+mods = "Command"
+
+[[keyboard.bindings]]
+chars = "\u0002I"
+key = "I"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = "\u0002U"
+key = "U"
+mods = "Command|Shift"
+
+[[keyboard.bindings]]
+chars = "\u0002f"
+key = "F"
+mods = "Command"
+
+[shell]
+args = ["--login", "-c tmux attach -t default || tmux new -s default"]
+program = "/usr/local/bin/fish"
+
+[window]
+decorations = "buttonless"
+dynamic_padding = false
+opacity = 1
+startup_mode = "Windowed"
+
+[window.padding]
+x = 12
+y = 12
