@@ -3,19 +3,27 @@ return {
 	dependencies = {
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
+		"towolf/vim-helm",
 		"hrsh7th/cmp-nvim-lsp",
 		"hrsh7th/cmp-buffer",
 		"hrsh7th/cmp-path",
 		"hrsh7th/cmp-cmdline",
 		"hrsh7th/nvim-cmp",
 		'onsails/lspkind.nvim',
+		-- {
+		-- 	"zbirenbaum/copilot-cmp",
+		-- 	config = function()
+		-- 		require("copilot_cmp").setup()
+		-- 	end
+		-- },
+
 		{
-			"zbirenbaum/copilot-cmp",
-			config = function()
-				require("copilot_cmp").setup()
-			end
+			"L3MON4D3/LuaSnip",
+			dependencies = {
+				"rafamadriz/friendly-snippets",
+			}
 		},
-		"L3MON4D3/LuaSnip",
+
 		"saadparwaiz1/cmp_luasnip",
 		"j-hui/fidget.nvim",
 	},
@@ -43,7 +51,9 @@ return {
 				"tsserver",
 				"dockerls",
 				"gopls",
+				"helm_ls"
 			},
+
 			handlers = {
 				function(server_name) -- default handler (optional)
 					require("lspconfig")[server_name].setup {
@@ -64,35 +74,51 @@ return {
 						}
 					}
 				end,
+				["helm_ls"] = function()
+					local lspconfig = require("lspconfig")
+					lspconfig.helm_ls.setup {
+						capabilities = capabilities,
+					}
+				end,
+				["yamlls"] = function ()
+					local lspconfig = require("lspconfig")
+					lspconfig.yamlls.setup {
+						capabilities = capabilities,
+						opts = {
+							filetypes_exclude = { "helm" }
+						}
+					}
+				end
 			}
 		})
 
 		local luasnip = require('luasnip')
 		luasnip.config.setup {}
 
-		local cmp_select = { behavior = cmp.SelectBehavior.Select }
-
 		local source_mapping = {
 			buffer = "[Buffer]",
 			nvim_lsp = "[LSP]",
 			nvim_lua = "[Lua]",
-			copilot = "[Copilot]",
+			-- copilot = "[Copilot]",
 			luasnip = "[Snip]",
 			path = "[Path]",
 		}
 		local lspkind = require 'lspkind'
 
-		lspkind.init({
-			symbol_map = {
-				Copilot = "",
-			},
-		})
+		-- lspkind.init({
+		-- 	symbol_map = {
+		-- 		Copilot = "",
+		-- 	},
+		-- })
 
 		cmp.setup({
 			snippet = {
 				expand = function(args)
 					require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
 				end,
+			},
+			completion = {
+				completeopt = 'menu,menuone,noinsert',
 			},
 			formatting = {
 				format = function(entry, vim_item)
@@ -103,34 +129,25 @@ return {
 				end,
 			},
 			mapping = cmp.mapping.preset.insert({
-				['<C-d>'] = cmp.mapping.scroll_docs(-4),
-				['<C-f>'] = cmp.mapping.scroll_docs(4),
+				['<C-n>'] = cmp.mapping.scroll_docs(-4),
+				['<C-p>'] = cmp.mapping.scroll_docs(4),
 				['<C-Space>'] = cmp.mapping.complete {},
-				['<CR>'] = cmp.mapping.confirm {
-					behavior = cmp.ConfirmBehavior.Replace,
+				['<C-y>'] = cmp.mapping.confirm {
 					select = true,
 				},
-				['<Tab>'] = cmp.mapping(function(fallback)
-					if cmp.visible() then
-						cmp.select_next_item(cmp_select)
-					elseif luasnip.expand_or_jumpable() then
+				['<C-k>'] = cmp.mapping(function()
+					if luasnip.expand_or_jumpable() then
 						luasnip.expand_or_jump()
-					else
-						fallback()
 					end
 				end, { 'i', 's' }),
-				['<S-Tab>'] = cmp.mapping(function(fallback)
-					if cmp.visible() then
-						cmp.select_prev_item(cmp_select)
-					elseif luasnip.jumpable(-1) then
+				['<C-j>'] = cmp.mapping(function()
+					if luasnip.jumpable(-1) then
 						luasnip.jump(-1)
-					else
-						fallback()
 					end
 				end, { 'i', 's' }),
 			}),
 			sources = cmp.config.sources({
-				{ name = 'copilot',  group_index = 2 },
+				-- { name = 'copilot',  group_index = 2 },
 				{ name = 'nvim_lsp', group_index = 2 },
 				{ name = 'buffer',   group_index = 2 },
 				{ name = 'path',     group_index = 2 },

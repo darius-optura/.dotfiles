@@ -2,7 +2,7 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
-# aliases  
+# aliases
 alias vim="nvim"
 alias cat="bat"
 alias grep='grep --colour=auto'
@@ -31,7 +31,7 @@ alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclu
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
- 
+
 export GOPATH=$HOME/Incubator/Go
 export GOROOT="/usr/local/opt/go/libexec"
 #export GO111MODULE=on
