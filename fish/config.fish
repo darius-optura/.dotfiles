@@ -45,6 +45,7 @@ export CLOUDSDK_PYTHON=python3
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
 export PATH="$PATH:/usr/sbin"
+export PATH="$PATH:/sbin"
 
 export BAT_THEME="Catppuccin"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
