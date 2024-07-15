@@ -80,7 +80,7 @@ return {
 						capabilities = capabilities,
 					}
 				end,
-				["yamlls"] = function ()
+				["yamlls"] = function()
 					local lspconfig = require("lspconfig")
 					lspconfig.yamlls.setup {
 						capabilities = capabilities,
@@ -102,14 +102,16 @@ return {
 			-- copilot = "[Copilot]",
 			luasnip = "[Snip]",
 			path = "[Path]",
+			supermaven = "[Supermaven]",
 		}
 		local lspkind = require 'lspkind'
 
-		-- lspkind.init({
-		-- 	symbol_map = {
-		-- 		Copilot = "",
-		-- 	},
-		-- })
+		lspkind.init({
+			symbol_map = {
+				Copilot = "",
+				Supermaven = "",
+			},
+		})
 
 		cmp.setup({
 			snippet = {
@@ -147,7 +149,7 @@ return {
 				end, { 'i', 's' }),
 			}),
 			sources = cmp.config.sources({
-				-- { name = 'copilot',  group_index = 2 },
+				{ name = 'supermaven',  group_index = 2 },
 				{ name = 'nvim_lsp', group_index = 2 },
 				{ name = 'buffer',   group_index = 2 },
 				{ name = 'path',     group_index = 2 },
