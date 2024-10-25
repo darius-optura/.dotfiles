@@ -1,4 +1,4 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
 
 # Original https://github.com/ThePrimeagen/.dotfiles/blob/master/bin/.local/bin/tmux-sessionizer
 
@@ -6,7 +6,7 @@
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    selected=$(find ~ ~/.config/kube ~/Work ~/Work/genius_assets ~/Work/around25 ~/Work/ebbot ~/Work/ebbot/devops ~/Work/ebbot/services ~/Work/ebbot/frontend ~/Work/ebbot/go ~/Work/ebbot/go/pkg ~/Work/ebbot/go/internal-pkg ~/.dotfiles ~/Incubator ~/Incubator/Devops ~/Incubator/Opensource ~/Incubator/R\&D ~/Incubator/Sandbox -mindepth 1 -maxdepth 1 -type d | fzf)
+    selected=$(find ~ ~/.config/kube ~/Work ~/Work/around25 ~/Work/ebbot ~/.dotfiles ~/Incubator ~/Incubator/Devops ~/Incubator/Opensource ~/Incubator/R\&D ~/Incubator/Sandbox -mindepth 1 -maxdepth 1 -type d | fzf)
 fi
 
 if [[ -z $selected ]]; then

@@ -10,8 +10,8 @@ alias egrep='egrep--colour=auto'
 # alias la='ls -a'
 # alias ll='ls -l'
 # alias lal='ls -al'
-alias ll="exa -l -g --icons --git"
-alias llt="exa -1 --icons --tree --git-ignore"
+alias ll="eza -l -g --icons --git"
+alias llt="eza -1 --icons --tree --git-ignore"
 alias dirs='dirs -v'
 alias cat='bat'
 alias gg='lazygit'
