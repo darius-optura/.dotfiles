@@ -3,7 +3,7 @@ return {
 	dependencies = {
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
-		"towolf/vim-helm",
+		{ "towolf/vim-helm", ft = "helm" },
 		"hrsh7th/cmp-nvim-lsp",
 		"hrsh7th/cmp-buffer",
 		"hrsh7th/cmp-path",
@@ -51,7 +51,8 @@ return {
 				"tsserver",
 				"dockerls",
 				"gopls",
-				"helm_ls"
+				"helm_ls",
+				"yamlls"
 			},
 
 			handlers = {
@@ -78,6 +79,13 @@ return {
 					local lspconfig = require("lspconfig")
 					lspconfig.helm_ls.setup {
 						capabilities = capabilities,
+						settings = {
+							['helm-ls'] = {
+								yamlls = {
+									path = "yaml-language-server"
+								}
+							}
+						}
 					}
 				end,
 				["yamlls"] = function()
@@ -86,7 +94,7 @@ return {
 						capabilities = capabilities,
 						opts = {
 							filetypes_exclude = { "helm" }
-						}
+						},
 					}
 				end
 			}
@@ -149,11 +157,11 @@ return {
 				end, { 'i', 's' }),
 			}),
 			sources = cmp.config.sources({
-				{ name = 'supermaven',  group_index = 2 },
-				{ name = 'nvim_lsp', group_index = 2 },
-				{ name = 'buffer',   group_index = 2 },
-				{ name = 'path',     group_index = 2 },
-				{ name = 'luasnip',  group_index = 2 },
+				{ name = 'supermaven', group_index = 2 },
+				{ name = 'nvim_lsp',   group_index = 2 },
+				{ name = 'buffer',     group_index = 2 },
+				{ name = 'path',       group_index = 2 },
+				{ name = 'luasnip',    group_index = 2 },
 			})
 		})
 

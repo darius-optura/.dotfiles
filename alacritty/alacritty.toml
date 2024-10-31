@@ -1,13 +1,3 @@
-live_config_reload = true
-import = [
-  # uncomment the flavour you want below:
-  # "~/.dotfiles/alacritty/catppuccin-mocha.toml"
-  "~/.dotfiles/alacritty/catppuccin-macchiato.toml"
-  # "~/.dotfiles/alacritty/catppuccin-frappe.toml"
-  # "~/.dotfiles/alacritty/catppuccin-latte.toml"
-  # "~/.dotfiles/alacritty/rose-pine-moon.toml"
-  # "~/.dotfiles/alacritty/tokyonight-storm.toml"
-]
 
 [env]
 TERM = "xterm-256color"
@@ -191,7 +181,7 @@ chars = "\u0002f"
 key = "F"
 mods = "Command"
 
-[shell]
+[terminal.shell]
 args = ["--login", "-c tmux attach -t default || tmux new -s default"]
 program = "/usr/local/bin/fish"
 
@@ -204,3 +194,17 @@ startup_mode = "Windowed"
 [window.padding]
 x = 12
 y = 12
+
+[general]
+live_config_reload = true
+import = [
+  # uncomment the flavour you want below:
+  # "~/.dotfiles/alacritty/catppuccin-mocha.toml"
+  "~/.dotfiles/alacritty/catppuccin-macchiato.toml"
+  # "~/.dotfiles/alacritty/catppuccin-frappe.toml"
+  # "~/.dotfiles/alacritty/catppuccin-latte.toml"
+  # "~/.dotfiles/alacritty/rose-pine-moon.toml"
+  # "~/.dotfiles/alacritty/tokyonight-storm.toml"
+]
+
+[terminal]
