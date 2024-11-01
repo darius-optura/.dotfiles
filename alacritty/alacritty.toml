@@ -188,7 +188,7 @@ program = "/usr/local/bin/fish"
 [window]
 decorations = "buttonless"
 dynamic_padding = false
-opacity = 1
+opacity = 0.7
 startup_mode = "Windowed"
 
 [window.padding]
@@ -200,10 +200,10 @@ live_config_reload = true
 import = [
   # uncomment the flavour you want below:
   # "~/.dotfiles/alacritty/catppuccin-mocha.toml"
-  "~/.dotfiles/alacritty/catppuccin-macchiato.toml"
+  # "~/.dotfiles/alacritty/catppuccin-macchiato.toml"
   # "~/.dotfiles/alacritty/catppuccin-frappe.toml"
   # "~/.dotfiles/alacritty/catppuccin-latte.toml"
-  # "~/.dotfiles/alacritty/rose-pine-moon.toml"
+  "~/.dotfiles/alacritty/rose-pine-moon.toml"
   # "~/.dotfiles/alacritty/tokyonight-storm.toml"
 ]
 
