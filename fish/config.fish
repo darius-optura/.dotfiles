@@ -52,6 +52,8 @@ export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"
 export KUBECONFIG="./kubeconfig.yml"
+export XDG_CONFIG_HOME="$HOME/.config"
+export EDITOR="nvim"
 
 
 starship init fish | source
