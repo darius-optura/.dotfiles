@@ -1,109 +1,110 @@
-# Styles...
-foreground: &foreground "#e0def4"
-background: &background "#191724"
-current_line: &current_line "#26233a"
-selection: &selection "#26233a"
-comment: &comment "#6272a4"
-cyan: &cyan "#ebbcba"
-green: &green "#31748f"
-orange: &orange "#f6c177"
-pink: &pink "#c4a7e7"
-purple: &purple "#c4a7e7"
-red: &red "#eb6f92"
-yellow: &yellow "#f6c177"
+# -----------------------------------------------------------------------------
+# Rose Pine Main
+# https://rosepinetheme.com/palette/ingredients/
+# -----------------------------------------------------------------------------
+#
+text: &text "#e0def4"
+base: &base "#232136"
+overlay: &overlay "#393552"
+muted: &muted "#6e6a86"
+rose: &rose "#ea9a97"
+pine: &pine "#3e8fb0"
+gold: &gold "#f6c177"
+iris: &iris "#c4a7e7"
+love: &love "#eb6f92"
 
 # Skin...
 k9s:
   # General K9s styles
   body:
-    fgColor: *foreground
-    bgColor: *background
-    logoColor: *purple
+    fgColor: *text
+    bgColor: *base
+    logoColor: *iris
   # Command prompt styles
   prompt:
-    fgColor: *foreground
-    bgColor: *background
-    suggestColor: *purple
+    fgColor: *text
+    bgColor: *base
+    suggestColor: *iris
   # ClusterInfoView styles.
   info:
-    fgColor: *pink
-    sectionColor: *foreground
+    fgColor: *iris
+    sectionColor: *text
   # Dialog styles.
   dialog:
-    fgColor: *foreground
-    bgColor: *background
-    buttonFgColor: *foreground
-    buttonBgColor: *purple
-    buttonFocusFgColor: *yellow
-    buttonFocusBgColor: *pink
-    labelFgColor: *orange
-    fieldFgColor: *foreground
+    fgColor: *text
+    bgColor: *base
+    buttonFgColor: *text
+    buttonBgColor: *iris
+    buttonFocusFgColor: *gold
+    buttonFocusBgColor: *iris
+    labelFgColor: *gold
+    fieldFgColor: *text
   frame:
     # Borders styles.
     border:
-      fgColor: *selection
-      focusColor: *current_line
+      fgColor: *overlay
+      focusColor: *overlay
     menu:
-      fgColor: *foreground
-      keyColor: *pink
+      fgColor: *text
+      keyColor: *iris
       # Used for favorite namespaces
-      numKeyColor: *pink
+      numKeyColor: *iris
     # CrumbView attributes for history navigation.
     crumbs:
-      fgColor: *foreground
-      bgColor: *current_line
-      activeColor: *current_line
+      fgColor: *text
+      bgColor: *overlay
+      activeColor: *overlay
     # Resource status and update styles
     status:
-      newColor: *cyan
-      modifyColor: *purple
-      addColor: *green
-      errorColor: *red
-      highlightcolor: *orange
-      killColor: *comment
-      completedColor: *comment
+      newColor: *rose
+      modifyColor: *iris
+      addColor: *pine
+      errorColor: *love
+      highlightcolor: *gold
+      killColor: *muted
+      completedColor: *muted
     # Border title styles.
     title:
-      fgColor: *foreground
-      bgColor: *current_line
-      highlightColor: *orange
-      counterColor: *purple
-      filterColor: *pink
+      fgColor: *text
+      bgColor: *overlay
+      highlightColor: *gold
+      counterColor: *iris
+      filterColor: *iris
   views:
     # Charts skins...
     charts:
       bgColor: default
       defaultDialColors:
-        - *purple
-        - *red
+        - *iris
+        - *love
       defaultChartColors:
-        - *purple
-        - *red
+        - *iris
+        - *love
     # TableView attributes.
     table:
-      fgColor: *foreground
-      bgColor: *background
+      fgColor: *text
+      bgColor: *base
       # Header row styles.
       header:
-        fgColor: *foreground
-        bgColor: *background
-        sorterColor: *cyan
+        fgColor: *text
+        bgColor: *base
+        sorterColor: *rose
     # Xray view attributes.
     xray:
-      fgColor: *foreground
-      bgColor: *background
-      cursorColor: *current_line
-      graphicColor: *purple
+      fgColor: *text
+      bgColor: *base
+      cursorColor: *overlay
+      graphicColor: *iris
       showIcons: false
     # YAML info styles.
     yaml:
-      keyColor: *pink
-      colonColor: *purple
-      valueColor: *foreground
+      keyColor: *iris
+      colonColor: *iris
+      valueColor: *text
     # Logs styles.
     logs:
-      fgColor: *foreground
-      bgColor: *background
+      fgColor: *text
+      bgColor: *base
       indicator:
-        fgColor: *foreground
-        bgColor: *purple
+        fgColor: *text
+        bgColor: *iris
