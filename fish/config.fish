@@ -53,6 +53,8 @@ export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"
 export KUBECONFIG="./kubeconfig.yml"
 export XDG_CONFIG_HOME="$HOME/.config"
+
+export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
 export EDITOR="nvim"
 
 
