@@ -1,0 +1,44 @@
+font-size = 15
+font-family = Berkeley Mono Variable
+font-family-bold = Berkeley Mono Variable Regular Bold
+font-family-italic = Berkeley Mono Variable Italic Regular
+font-family-bold-italic = Berkeley Mono Variable Italic Bold Italic
+command = fish --login -c "tmux attach -t default || tmux new -s default"
+shell-integration = fish
+theme = Horizon
+window-decoration = false
+window-padding-x = 12
+window-padding-y = 12
+
+keybind = super+f=text:\x02f
+keybind = super+comma=text:\x02,
+keybind = super+k=text:\x02s
+keybind = super+one=text:\x021
+keybind = super+two=text:\x022
+keybind = super+three=text:\x023
+keybind = super+four=text:\x024
+keybind = super+five=text:\x025
+keybind = super+six=text:\x026
+keybind = super+seven=text:\x027
+keybind = super+eight=text:\x028
+keybind = super+nine=text:\x029
+keybind = super+L=text:\x02L
+keybind = super+[=text:\x02[
+keybind = super+shift+[=text:\x02p
+keybind = super+shift+n=text:\x02%
+keybind = super+n=text:\x02\"
+keybind = super+q=text:\x02d
+keybind = super+shift+]=text:\x02n
+keybind = super+s=text:\x1b:w\n
+keybind = super+t=text:\x02c
+keybind = super+shift+t=text:\x02!
+keybind = super+w=text:\x02x
+keybind = super+z=text:\x02z
+keybind = super+r=text:\x02r
+keybind = super+m=text:\x02m
+keybind = super+up=text:\x02\x1b[a
+keybind = super+down=text:\x02\x1b[b
+keybind = super+left=text:\x02\x1b[d
+keybind = super+right=text:\x02\x1b[c
+keybind = super+i=text:\x02i
+keybind = super+u=text:\x02u

@@ -40,7 +40,7 @@ export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 export PATH="$HOME/.gcloud/bin:$PATH"
 export PATH="/usr/local/bin:$PATH"
-export CLOUDSDK_PYTHON=python3
+export CLOUDSDK_PYTHON=python3.12
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
@@ -55,12 +55,13 @@ export KUBECONFIG="./kubeconfig.yml"
 export XDG_CONFIG_HOME="$HOME/.config"
 
 export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
+export PATH="$PATH:$HOME/.cargo/bin"
 export EDITOR="nvim"
 
 
 starship init fish | source
 zoxide init fish | source
-fish_config theme choose "Rose Pine Moon"
+# fish_config theme choose "Rose Pine Moon"
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
 
