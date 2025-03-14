@@ -2,7 +2,6 @@ return {
     "nvim-treesitter/nvim-treesitter",
     dependencies = {
         "nvim-treesitter/playground",
-        "nvim-treesitter/nvim-treesitter-textobjects",
         "nvim-treesitter/nvim-treesitter-refactor",
         'nvim-treesitter/nvim-treesitter-context'
     },
@@ -30,12 +29,15 @@ return {
             highlight = {
                 -- `false` will disable the whole extension
                 enable = true,
-
-                -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-                -- Set this to `true` if you depend on "syntax" being enabled (like for indentation).
-                -- Using this option may slow down your editor, and you may see some duplicate highlights.
-                -- Instead of true it can also be a list of languages
-                additional_vim_regex_highlighting = { "markdown" },
+            },
+						incremental_selection = {
+                enable = true,
+                keymaps = {
+                    init_selection = "<Enter>", -- set to `false` to disable one of the mappings
+                    node_incremental = "<Enter>",
+                    scope_incremental = false,
+                    node_decremental = "<Backspace>",
+                },
             },
         })
     end

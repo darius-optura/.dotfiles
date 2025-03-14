@@ -18,7 +18,7 @@ return {
 				require("trouble").previous({ skip_groups = true, jump = true });
 			end)
 
-			vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = "Open floating diagnostic message" })
+			vim.keymap.set('n', '<leader>e', function () vim.diagnostic.open_float() end, { desc = "Open floating diagnostic message" })
 		end
 	},
 }
