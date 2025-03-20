@@ -50,3 +50,8 @@ vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true, desc =
 vim.keymap.set("n", "<leader>so", function()
     vim.cmd("so")
 end, { desc = "Reload nvim config" })
+
+vim.keymap.set('n', '<leader>e', function ()
+		vim.diagnostic.open_float()
+end, { desc = "Open floating diagnostic message" })
+

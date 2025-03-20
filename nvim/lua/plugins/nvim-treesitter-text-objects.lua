@@ -4,7 +4,7 @@ return {
         "nvim-treesitter/nvim-treesitter"
     },
     init = function()
-        local config = require'nvim-treesitter.configs';
+        local config = require 'nvim-treesitter.configs';
         config.setup({
             textobjects = {
                 select = {
@@ -34,7 +34,7 @@ return {
                     -- mapping query_strings to modes.
                     selection_modes = {
                         ['@parameter.outer'] = 'v', -- charwise
-                        ['@function.outer'] = 'V', -- linewise
+                        ['@function.outer'] = 'V',  -- linewise
                         ['@class.outer'] = '<c-v>', -- blockwise
                     },
                     -- If you set this to `true` (default is `false`) then any textobject is
@@ -51,7 +51,7 @@ return {
                 swap = {
                     enable = true,
                     swap_next = {
-                        ["<leader>a"] = {query="@parameter.inner", desc="Swap with next parameter"},
+                        ["<leader>a"] = { query = "@parameter.inner", desc = "Swap with next parameter" },
                     },
                     swap_previous = {
                         ["<leader>A"] = "@parameter.inner",
