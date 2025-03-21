@@ -13,4 +13,13 @@ return {
 			golang = { "gofumpt", "goimports" },
 		},
 	},
+	keys = {
+		{
+			"<leader>f",
+			function()
+				require("conform").format()
+			end,
+			{ desc = "Format current buffer" },
+		},
+	},
 }
