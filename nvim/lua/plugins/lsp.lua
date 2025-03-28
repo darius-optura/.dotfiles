@@ -55,6 +55,9 @@ return {
 			gopls = {},
 			pyright = {},
 			ts_ls = {},
+			jsonls = {},
+			docker_compose_language_service = {},
+			biome = {},
 
 			lua_ls = {
 				capabilities = capabilities,
@@ -72,7 +75,13 @@ return {
 		vim.list_extend(ensure_installed, {
 			"stylua", -- Used to format Lua code
 			"gofumpt",
+			"prettierd",
+			"prettier",
 			"biome",
+			"golangci-lint",
+			"luacheck",
+			"eslint_d"
+
 		})
 		require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
