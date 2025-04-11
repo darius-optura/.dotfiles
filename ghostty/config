@@ -3,13 +3,14 @@ font-family = Berkeley Mono Variable
 font-family-bold = Berkeley Mono Variable Regular Bold
 font-family-italic = Berkeley Mono Variable Italic Regular
 font-family-bold-italic = Berkeley Mono Variable Italic Bold Italic
+
 command = /usr/local/bin/fish --login -c "tmux attach -t default || tmux new -s default"
-# command = "tmux attach -t default || tmux new -s default"
+
 shell-integration = fish
-theme = rose-pine-moon
+theme = cyberdream
 window-decoration = false
-window-padding-x = 12
-window-padding-y = 12
+window-padding-x = 10
+window-padding-y = 2
 background-opacity = 0.8
 
 keybind = super+f=text:\x02f
@@ -42,5 +43,5 @@ keybind = super+up=text:\x02\x1b[a
 keybind = super+down=text:\x02\x1b[b
 keybind = super+left=text:\x02\x1b[d
 keybind = super+right=text:\x02\x1b[c
-keybind = super+shift+i=text:\x02i
-keybind = super+shift+u=text:\x02u
+keybind = super+shift+i=text:\x02I
+keybind = super+shift+u=text:\x02U
