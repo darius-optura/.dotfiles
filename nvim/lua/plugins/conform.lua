@@ -11,6 +11,9 @@ return {
 			javascript = { "prettierd", "prettier", stop_after_first = true },
 			typescript = { "prettierd", "prettier", stop_after_first = true },
 			golang = { "gofumpt", "goimports" },
+			css = { "prettierd" },
+			scss = { "prettierd" },
+			less = { "prettierd" },
 		},
 	},
 	keys = {

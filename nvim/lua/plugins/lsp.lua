@@ -58,6 +58,7 @@ return {
 			jsonls = {},
 			docker_compose_language_service = {},
 			biome = {},
+			cssls = {},
 
 			lua_ls = {
 				capabilities = capabilities,
@@ -80,8 +81,8 @@ return {
 			"biome",
 			"golangci-lint",
 			"luacheck",
-			"eslint_d"
-
+			"eslint_d",
+			"cssls",
 		})
 		require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
