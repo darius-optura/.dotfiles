@@ -47,7 +47,7 @@ export PATH="$PATH:$HOME/.rvm/bin"
 export PATH="$PATH:/usr/sbin"
 export PATH="$PATH:/sbin"
 
-export BAT_THEME="Rose Pine Moon"
+export BAT_THEME="Catppuccin"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"

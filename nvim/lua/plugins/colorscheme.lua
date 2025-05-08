@@ -18,10 +18,10 @@ return {
 	{
 		"catppuccin/nvim",
 		name = "catppuccin",
-		-- priority = 1000,
+		priority = 1000,
 		config = function()
 			require("catppuccin").setup({
-				flavour = "frappe", -- latte, frappe, macchiato, mocha
+				flavour = "mocha", -- latte, frappe, macchiato, mocha
 				transparent_background = true, -- disables setting the background color.)
 				integrations = {
 					blink_cmp = true,
@@ -53,19 +53,19 @@ return {
 					-- For more plugins integrations please scroll down (https://github.com/catppuccin/nvim#integrations)
 				},
 			})
+			vim.cmd("colorscheme catppuccin")
 		end,
 	},
 	{
 		"scottmckendry/cyberdream.nvim",
 		lazy = false,
-		priority = 1000,
+		-- priority = 1000,
 		config = function()
 			require("cyberdream").setup({
 				-- variant = "default", -- use "light" for the light variant. Also accepts "auto" to set dark or light colors based on the current value of `vim.o.background`
 				-- Enable transparent background
 				transparent = true,
 			})
-			vim.cmd("colorscheme cyberdream")
 		end,
 	},
 }
