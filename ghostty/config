@@ -11,7 +11,8 @@ theme = catppuccin-mocha.conf
 window-decoration = false
 window-padding-x = 10
 window-padding-y = 2
-background-opacity = 0.5
+background-opacity = 0.8
+background-blur-radius = 40
 
 keybind = super+f=text:\x02f
 keybind = super+comma=text:\x02,
