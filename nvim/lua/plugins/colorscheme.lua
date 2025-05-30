@@ -1,20 +1,20 @@
 return {
-	{
-		"rose-pine/neovim",
-		name = "rose-pine",
-		config = function()
-			require("rose-pine").setup({
-				disable_background = true,
-				styles = {
-					transparency = true,
-				},
-				variant = "moon",
-				dark_variant = "moon",
-			})
-
-			-- vim.cmd("colorscheme rose-pine")
-		end,
-	},
+	-- {
+	-- 	"rose-pine/neovim",
+	-- 	name = "rose-pine",
+	-- 	config = function()
+	-- 		require("rose-pine").setup({
+	-- 			disable_background = true,
+	-- 			styles = {
+	-- 				transparency = true,
+	-- 			},
+	-- 			variant = "moon",
+	-- 			dark_variant = "moon",
+	-- 		})
+	--
+	-- 		-- vim.cmd("colorscheme rose-pine")
+	-- 	end,
+	-- },
 	{
 		"catppuccin/nvim",
 		name = "catppuccin",
@@ -56,16 +56,16 @@ return {
 			vim.cmd("colorscheme catppuccin")
 		end,
 	},
-	{
-		"scottmckendry/cyberdream.nvim",
-		lazy = false,
-		-- priority = 1000,
-		config = function()
-			require("cyberdream").setup({
-				-- variant = "default", -- use "light" for the light variant. Also accepts "auto" to set dark or light colors based on the current value of `vim.o.background`
-				-- Enable transparent background
-				transparent = true,
-			})
-		end,
-	},
+	-- {
+	-- 	"scottmckendry/cyberdream.nvim",
+	-- 	lazy = false,
+	-- 	-- priority = 1000,
+	-- 	config = function()
+	-- 		require("cyberdream").setup({
+	-- 			-- variant = "default", -- use "light" for the light variant. Also accepts "auto" to set dark or light colors based on the current value of `vim.o.background`
+	-- 			-- Enable transparent background
+	-- 			transparent = true,
+	-- 		})
+	-- 	end,
+	-- },
 }
