@@ -47,7 +47,7 @@ export PATH="$PATH:$HOME/.rvm/bin"
 export PATH="$PATH:/usr/sbin"
 export PATH="$PATH:/sbin"
 
-export BAT_THEME="Catppuccin"
+export BAT_THEME="gruvbox-dark"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"
@@ -59,8 +59,6 @@ export PATH="$PATH:$HOME/.cargo/bin"
 export EDITOR="nvim"
 
 
-starship init fish | source
-zoxide init fish | source
 # fish_config theme choose "Rose Pine Moon"
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
@@ -68,3 +66,5 @@ if [ -f '$HOME/.gcloud/path.fish.inc' ]; . '$HOME/.gcloud/path.fish.inc'; end
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
+starship init fish | source
+zoxide init fish | source

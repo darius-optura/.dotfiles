@@ -18,7 +18,7 @@ return {
 	{
 		"catppuccin/nvim",
 		name = "catppuccin",
-		priority = 1000,
+		-- priority = 1000,
 		config = function()
 			require("catppuccin").setup({
 				flavour = "mocha", -- latte, frappe, macchiato, mocha
@@ -53,7 +53,21 @@ return {
 					-- For more plugins integrations please scroll down (https://github.com/catppuccin/nvim#integrations)
 				},
 			})
-			vim.cmd("colorscheme catppuccin")
+			-- vim.cmd("colorscheme catppuccin")
+		end,
+	},
+	{
+		"ellisonleao/gruvbox.nvim",
+		priority = 1000,
+		config = function()
+			require("gruvbox").setup({
+				{
+					-- terminal_colors = true, -- add neovim terminal colors
+					transparent_mode = true,
+				},
+			})
+			vim.cmd("colorscheme gruvbox")
+			vim.api.nvim_set_hl(0, "Normal", {guibg = NONE, ctermbg = NONE})
 		end,
 	},
 	-- {

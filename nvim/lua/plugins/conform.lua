@@ -8,8 +8,8 @@ return {
 		},
 		formatters_by_ft = {
 			lua = { "stylua" },
-			javascript = { "prettierd", "prettier", stop_after_first = true },
-			typescript = { "prettierd", "prettier", stop_after_first = true },
+			javascript = { "prettierd", "eslint_d", stop_after_first = true },
+			typescript = { "prettierd", "eslint_d", stop_after_first = true },
 			golang = { "gofumpt", "goimports" },
 			css = { "prettierd" },
 			scss = { "prettierd" },

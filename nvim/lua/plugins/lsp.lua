@@ -57,7 +57,6 @@ return {
 			ts_ls = {},
 			jsonls = {},
 			docker_compose_language_service = {},
-			biome = {},
 			cssls = {},
 
 			lua_ls = {
@@ -77,11 +76,9 @@ return {
 			"stylua", -- Used to format Lua code
 			"gofumpt",
 			"prettierd",
-			"prettier",
-			"biome",
+			"eslint_d",
 			"golangci-lint",
 			"luacheck",
-			"eslint_d",
 			"cssls",
 		})
 		require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
