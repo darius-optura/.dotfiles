@@ -56,10 +56,7 @@ autocmd("LspAttach", {
 		nmap("<leader>wl", function()
 			print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
 		end, "[W]orkspace [L]ist Folders")
+		nmap("<leader>f", vim.lsp.buf.format,"[F]ormat current buffer");
 
-		-- Create a command `:Format` local to the LSP buffer
-		vim.api.nvim_buf_create_user_command(e.buf, "Format", function(_)
-			require("conform").format({ bufnr = e.buf })
-		end, { desc = "Format current buffer with LSP" })
 	end,
 })
