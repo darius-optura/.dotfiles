@@ -7,6 +7,14 @@ return {
 		{ "Kaiser-Yang/blink-cmp-avante" },
 		{ "mechasnovski/mini.icons", opts = {} },
 		{ "xzbdmw/colorful-menu.nvim", opts = {} },
+		{
+			"L3MON4D3/LuaSnip",
+			version = "v2.*",
+			dependencies = { "rafamadriz/friendly-snippets" },
+			config = function()
+				require("luasnip.loaders.from_vscode").lazy_load()
+			end,
+		},
 	},
 	---@module 'blink.cmp'
 	---@type blink.cmp.Config
@@ -14,13 +22,14 @@ return {
 		keymap = { preset = "default" },
 		cmdline = { completion = { ghost_text = { enabled = true } } },
 
+		snippets = { preset = "luasnip" },
 		appearance = {
 			use_nvim_cmp_as_default = true,
 			nerd_font_variant = "mono",
 		},
 
 		sources = {
-			default = { "lsp", "path", "buffer", "avante" },
+			default = { "lsp", "path", "snippets", "buffer", "avante" },
 			providers = {
 				avante = {
 					module = "blink-cmp-avante",
@@ -69,6 +78,5 @@ return {
 				},
 			},
 		},
-
 	},
 }

@@ -15,6 +15,9 @@ return {
 
 		-- "j-hui/fidget.nvim",
 	},
+	opts = {
+		inlay_hints = { enabled = true },
+	},
 	config = function()
 		vim.diagnostic.config({
 			severity_sort = true,
