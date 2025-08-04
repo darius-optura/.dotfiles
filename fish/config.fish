@@ -40,7 +40,7 @@ export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 export PATH="$HOME/.gcloud/bin:$PATH"
 export PATH="/usr/local/bin:$PATH"
-export CLOUDSDK_PYTHON=python3
+export CLOUDSDK_PYTHON=python3.12
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
