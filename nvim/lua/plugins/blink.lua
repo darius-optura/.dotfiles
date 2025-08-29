@@ -1,20 +1,10 @@
 return {
-	-- {
-	-- 	"saghen/blink.compat",
-	-- 	-- use v2.* for blink.cmp v1.*
-	-- 	version = "2.*",
-	-- 	-- lazy.nvim will automatically load the plugin when it's required by blink.cmp
-	-- 	lazy = true,
-	-- 	-- make sure to set opts so that lazy.nvim calls blink.compat's setup
-	-- 	opts = {},
-	-- },
 	{
 
 		"saghen/blink.cmp",
 
 		version = "1.*",
 		dependencies = {
-			{ "Kaiser-Yang/blink-cmp-avante" },
 			{ "mechasnovski/mini.icons", opts = {} },
 			{ "xzbdmw/colorful-menu.nvim", opts = {} },
 			{
@@ -26,6 +16,34 @@ return {
 					require("luasnip.loaders.from_vscode").lazy_load()
 				end,
 			},
+			{
+				"saghen/blink.compat",
+				-- use v2.* for blink.cmp v1.*
+				version = "2.*",
+				-- lazy.nvim will automatically load the plugin when it's required by blink.cmp
+				lazy = true,
+				-- make sure to set opts so that lazy.nvim calls blink.compat's setup
+				opts = {},
+				dependencies = {
+					{
+						"supermaven-inc/supermaven-nvim",
+						opts = {
+							disable_inline_completion = true,
+						},
+					},
+				},
+			},
+			-- {
+			-- 	"milanglacier/minuet-ai.nvim",
+			-- 	config = function()
+			-- 		require("minuet").setup({
+			-- 			-- Your configuration options here
+			-- 		})
+			-- 	end,
+			-- 	dependencies = {
+			-- 		{ "nvim-lua/plenary.nvim" },
+			-- 	},
+			-- },
 		},
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
@@ -40,33 +58,41 @@ return {
 			},
 
 			sources = {
-				default = { "lsp", "path", "snippets", "buffer", "avante" },
+				default = { "lsp", "path", "snippets", "buffer", "supermaven" },
 				providers = {
-					avante = {
-						module = "blink-cmp-avante",
-						name = "Avante",
-						opts = {
-							-- options for blink-cmp-avante
-						},
+					supermaven = {
+						name = "supermaven",
+						module = "blink.compat.source",
+						score_offset = 3,
 					},
+					-- minuet = {
+					-- 	name = "minuet",
+					-- 	module = "minuet.blink",
+					-- 	async = true,
+					-- 	-- Should match minuet.config.request_timeout * 1000,
+					-- 	-- since minuet.config.request_timeout is in seconds
+					-- 	timeout_ms = 3000,
+					-- 	score_offset = 50, -- Gives minuet higher priority among suggestions
+					-- },
 				},
 			},
 			signature = {
 				enabled = true,
 			},
 			completion = {
+				-- trigger = { prefetch_on_insert = false },
 				documentation = {
 					auto_show = true,
 				},
 				ghost_text = {
-					enabled = false,
+					enabled = true,
 				},
 				menu = {
 					draw = {
-						columns = { { "kind_icon" }, { "label", gap = 1 } },
+						columns = { { "kind_icon" }, { "label", gap = 1 }, { "source_name" } },
 						components = {
 							kind_icon = {
-								ellipsis = false,
+								ellipsis = true,
 								text = function(ctx)
 									local kind_icon, _, _ = require("mini.icons").get("lsp", ctx.kind)
 									return kind_icon .. ctx.icon_gap
@@ -84,6 +110,30 @@ return {
 								highlight = function(ctx)
 									return require("colorful-menu").blink_components_highlight(ctx)
 								end,
+							},
+							source_name = {
+								text = function(ctx)
+									local icons = {
+										LSP = "󰒋",
+										Buffer = "󰈙",
+										Path = "󰉋",
+										Snippets = "󰩫",
+										supermaven = "󰚩",
+									}
+									-- -- Debug: print the actual source name
+									-- vim.schedule(function()
+									-- 	print("Source name: '" .. tostring(ctx.source_name) .. "'")
+									-- end)
+									-- local icon = icons[ctx.source_name]
+									-- if icon then
+									-- 	return icon
+									-- else
+									-- 	-- Show both fallback icon and the actual source name for debugging
+									-- 	return "󰘦[" .. tostring(ctx.source_name) .. "]"
+									-- end
+									return icons[ctx.source_name] or "󰘦"
+								end,
+								highlight = "BlinkCmpSource",
 							},
 						},
 					},
