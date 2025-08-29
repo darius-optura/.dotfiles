@@ -1,8 +1,6 @@
 return {
 	{
-
 		"saghen/blink.cmp",
-
 		version = "1.*",
 		dependencies = {
 			{ "mechasnovski/mini.icons", opts = {} },
@@ -16,6 +14,7 @@ return {
 					require("luasnip.loaders.from_vscode").lazy_load()
 				end,
 			},
+
 			{
 				"saghen/blink.compat",
 				-- use v2.* for blink.cmp v1.*
@@ -29,19 +28,19 @@ return {
 						"supermaven-inc/supermaven-nvim",
 						opts = {
 							disable_inline_completion = true,
+							disable_keymaps = true,
 						},
 					},
 				},
 			},
 			-- {
-			-- 	"milanglacier/minuet-ai.nvim",
-			-- 	config = function()
-			-- 		require("minuet").setup({
-			-- 			-- Your configuration options here
-			-- 		})
-			-- 	end,
+			-- 	"supermaven-inc/supermaven-nvim",
 			-- 	dependencies = {
-			-- 		{ "nvim-lua/plenary.nvim" },
+			-- 		"huijiro/blink-cmp-supermaven",
+			-- 	},
+			-- 	opts = {
+			-- 		disable_inline_completion = true, -- disables inline completion for use with cmp
+			-- 		disable_keymaps = true, -- disables built in keymaps for more manual control
 			-- 	},
 			-- },
 		},
@@ -65,22 +64,12 @@ return {
 						module = "blink.compat.source",
 						score_offset = 3,
 					},
-					-- minuet = {
-					-- 	name = "minuet",
-					-- 	module = "minuet.blink",
-					-- 	async = true,
-					-- 	-- Should match minuet.config.request_timeout * 1000,
-					-- 	-- since minuet.config.request_timeout is in seconds
-					-- 	timeout_ms = 3000,
-					-- 	score_offset = 50, -- Gives minuet higher priority among suggestions
-					-- },
 				},
 			},
 			signature = {
 				enabled = true,
 			},
 			completion = {
-				-- trigger = { prefetch_on_insert = false },
 				documentation = {
 					auto_show = true,
 				},
