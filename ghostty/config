@@ -14,18 +14,20 @@ window-padding-y = 2
 background-opacity = 0.7
 background-blur-radius = 40
 
+auto-update-channel = tip
+
 keybind = super+f=text:\x02f
 keybind = super+comma=text:\x02,
 keybind = super+k=text:\x02s
-keybind = super+one=text:\x021
-keybind = super+two=text:\x022
-keybind = super+three=text:\x023
-keybind = super+four=text:\x024
-keybind = super+five=text:\x025
-keybind = super+six=text:\x026
-keybind = super+seven=text:\x027
-keybind = super+eight=text:\x028
-keybind = super+nine=text:\x029
+keybind = super+digit_1=text:\x021
+keybind = super+digit_2=text:\x022
+keybind = super+digit_3=text:\x023
+keybind = super+digit_4=text:\x024
+keybind = super+digit_5=text:\x025
+keybind = super+digit_6=text:\x026
+keybind = super+digit_7=text:\x027
+keybind = super+digit_8=text:\x028
+keybind = super+digit_9=text:\x029
 keybind = super+L=text:\x02L
 keybind = super+[=text:\x02[
 keybind = super+shift+[=text:\x02p
