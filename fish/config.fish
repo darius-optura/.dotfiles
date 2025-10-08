@@ -33,13 +33,16 @@ alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclu
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 
 export GOPATH=$HOME/Incubator/Go
+# export GOROOT="/opt/homebrew/opt/go/libexec"
 export GOROOT="/usr/local/opt/go/libexec"
 #export GO111MODULE=on
 export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 export PATH="$HOME/.gcloud/bin:$PATH"
+
 export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
 export CLOUDSDK_PYTHON=python3.12
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
