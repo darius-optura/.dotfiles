@@ -3,7 +3,7 @@
 ## Dependencies
 
 * [Homebrew](https://brew.sh)
-* [Alacritty](https://alacritty.org/)
+* [Ghostty](https://ghostty.org/)
 * [Fish Shell](https://fishshell.com/)
 * [Tmux](https://github.com/tmux/tmux)
 * [NeoVim](https://neovim.io/)
@@ -16,11 +16,11 @@ Assuming you already have `homebrew` installed we can proceed with the instalati
 ### Install packages
 
 ```bash
-brew install fish tmux neovim bat starship fd ripgrep fzf git-delta
+brew install fish tmux neovim bat starship fd ripgrep fzf git-delta zoxide eza go lazygit orbstack luarocks
 ```
 
 ```bash
-brew install --cask alacritty
+brew install --cask ghostty
 ```
 
 ```bash
@@ -38,7 +38,7 @@ git clone --recursive git@github.com:cupsadarius/dotfiles.git ~/.dotfiles
 ```bash
 cd ~/.config
 
-ln -s $HOME/.dotfiles/alacritty ./alacritty
+ln -s $HOME/.dotfiles/ghostty ./ghostty
 ln -s $HOME/.dotfiles/fish ./fish
 ln -s $HOME/.dotfiles/nvim ./nvim
 ln -s $HOME/.dotfiles/starship ./starship
@@ -47,54 +47,38 @@ ln -s $HOME/.dotfiles/bat ./bat
 ln -s $HOME/.dotfiles/lazygit ./lazygit
 ```
 
+### Symlink tmux sessionzier to `~/.local/bin`
+
+```bash
+cd ~/.local/bin
+
+ln -s $HOME/.dotfiles/bin/tmux-sessionizer ./tmux-sessionizer
+ln -s $HOME/.dotfiles/bin/tmux-windowizer ./tmux-windowizer
+```
+
 ### Install [oh-my-fish](https://github.com/oh-my-fish/oh-my-fish)
 
 ```bash
 curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish
 ```
 
+### Install [fisher](https://github.com/jorgebucaran/fisher)
+
+```bash
+curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
+```
+
 ### Install `fish shell` dependencies
 
 ```bash
-omf install z nvm
-```
+fisher install jorgebucaran/nvm.fish
 
-```bash
-omf install https://github.com/catppuccin/fish
 ```
 
 ### Install [tmux plugin manager](https://github.com/tmux-plugins/tpm)
 
 ```bash
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-```
-
-### Install [neovim package manager](https://github.com/wbthomason/packer.nvim)
-
-```bash
-git clone --depth 1 https://github.com/wbthomason/packer.nvim\
- ~/.local/share/nvim/site/pack/packer/start/packer.nvim
- ```
-
-### Install [LSP](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md) 
-
-```bash
-npm install -g typescript typescript-language-server dockerfile-language-server-nodejs vscode-langservers-extracted
-```
-
-```bash
-go install golang.org/x/tools/gopls@latest
-```
-
-### Install vim plugins
-
-```bash
-vim +PackerSync +GlowInstall
-```
-
-After opening vim you can install the nodejs debugger
-```vim
-:VimspectorInstall vscode-node-debug2
 ```
 
 ### Update bat theme cache
