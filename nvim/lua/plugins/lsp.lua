@@ -57,6 +57,7 @@ return {
 			-- clangd = {},
 			gopls = {},
 			pyright = {},
+			uv = {},
 			ts_ls = {},
 			jsonls = {},
 			docker_compose_language_service = {},

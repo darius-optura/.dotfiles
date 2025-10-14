@@ -15,7 +15,7 @@ alias llt="eza -1 --icons --tree --git-ignore"
 alias dirs='dirs -v'
 alias cat='bat'
 alias gg='lazygit'
-alias python='python3'
+alias python='python3.14'
 alias simulator='open /Applications/Xcode.app/Contents/Developer/Applications/Simulator.app'
 alias scratch='nvim +noswapfile +"set buftype=nofile" +"set bufhidden=hide"'
 alias k='kubectl'
@@ -33,8 +33,8 @@ alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclu
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 
 export GOPATH=$HOME/Incubator/Go
-# export GOROOT="/opt/homebrew/opt/go/libexec"
-export GOROOT="/usr/local/opt/go/libexec"
+export GOROOT="/opt/homebrew/opt/go/libexec"
+# export GOROOT="/usr/local/opt/go/libexec"
 #export GO111MODULE=on
 export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
 
@@ -49,6 +49,7 @@ export CLOUDSDK_PYTHON=python3.12
 export PATH="$PATH:$HOME/.rvm/bin"
 export PATH="$PATH:/usr/sbin"
 export PATH="$PATH:/sbin"
+export PATH="$PATH:/opt/homebrew/bin"
 
 export BAT_THEME="gruvbox-dark"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
