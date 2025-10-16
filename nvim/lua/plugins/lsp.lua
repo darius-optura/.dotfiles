@@ -56,7 +56,17 @@ return {
 			helm_ls = {},
 			-- clangd = {},
 			gopls = {},
-			pyright = {},
+			-- ruff = {},
+			pylsp = {
+				-- use https://github.com/python-lsp/python-lsp-ruff
+				plugins = {
+					ruff = {
+						enabled = true,
+						formatEnabled = true,
+						executable = "/opt/homebrew/bin/ruff",
+					},
+				},
+			},
 			uv = {},
 			ts_ls = {},
 			jsonls = {},
