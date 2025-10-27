@@ -51,7 +51,7 @@ export PATH="$PATH:/usr/sbin"
 export PATH="$PATH:/sbin"
 export PATH="$PATH:/opt/homebrew/bin"
 
-export BAT_THEME="gruvbox-dark"
+export BAT_THEME="Catppuccin Mocha"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"
