@@ -63,7 +63,7 @@ Create theme files for each application in their respective config directories:
 ~/.config/kitty/themes/yourtheme.conf
 
 # Tmux theme (if using catppuccin plugin)
-# Update flavor in tmux.conf or add new plugin
+~/.config/tmux/themes/yourtheme.conf
 
 # Neovim colorscheme
 # Install via your plugin manager
@@ -90,12 +90,13 @@ yourtheme)
     ;;
 
 # ... repeat for all other update functions including:
-# - update_alacritty_theme()
-# - update_kitty_theme()
-# - update_tmux_theme()
-# - update_bat_theme()
-# - update_starship_theme()
-# - update_neovim_theme()
+# - update_alacritty_theme() - updates import line in alacritty.toml
+# - update_kitty_theme() - updates include line in kitty.conf
+# - update_tmux_theme() - replaces source-file line in tmux.conf
+# - update_bat_theme() - updates BAT_THEME in fish/config.fish
+# - update_starship_theme() - copies preset file to starship.toml
+# - update_fzf_theme() - calls Fish function to update FZF colors
+# - update_neovim_theme() - comments/uncomments vim.cmd in colorscheme.lua
 ```
 
 ### 3. Test Your Theme
@@ -160,25 +161,73 @@ green = "#a6e3a1"
 
 ### Tmux Theme
 
-For Catppuccin-based themes, update the flavor in `tmux.conf`:
+Create a complete theme config file in `~/.config/tmux/themes/yourtheme.conf`:
 
 ```tmux
-set -g @catppuccin_flavor "yourflavor"
+# Your Theme Configuration
+
+# If using a plugin, add to conf/plugins.conf:
+# set -g @plugin 'author/tmux-yourtheme'
+
+# Plugin settings
+set -g @yourtheme_variant 'dark'
+
+# Status bar configuration
+set -g status-right-length 100
+set -g status-left-length 100
+set-option -g status-position top
+# ... etc
 ```
 
-For completely different themes, you may need to install a different Tmux theme plugin.
+**Important:** Add the theme plugin to `~/.config/tmux/conf/plugins.conf`:
+```tmux
+set -g @plugin 'author/tmux-yourtheme'
+```
 
-### Starship Palette
+Then run `prefix + I` in tmux to install the plugin.
 
-Add a new palette in `~/.config/starship/starship.toml`:
+The theme switcher will update the `source-file` line in `tmux.conf` to load your theme.
+
+### Starship Preset
+
+Create a complete Starship preset file in `~/.config/starship/presets/yourtheme.toml`:
 
 ```toml
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+scan_timeout = 30
+command_timeout = 3600
+add_newline = true
+
+# Your custom format string
+format = """
+$username\
+$directory\
+$git_branch\
+$git_status\
+# ... etc
+"""
+
+# Set the palette
+palette = "yourtheme"
+
+# Module configurations
+[directory]
+truncation_length = 4
+style = "bold lavender"
+
+# ... more module configs
+
+# Palette definition
 [palettes.yourtheme]
 color_fg0 = '#cdd6f4'
 color_bg1 = '#1e1e2e'
 color_blue = '#89b4fa'
 # ... etc
 ```
+
+The theme switcher copies the entire preset file to `starship.toml`, so each preset should be a complete, standalone configuration.
 
 ### FZF Theme
 
