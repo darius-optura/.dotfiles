@@ -71,3 +71,14 @@ set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
 starship init fish | source
 zoxide init fish | source
+
+# Load FZF theme based on saved preference
+if test -f "$HOME/.config/dotfiles-theme"
+    set -l saved_theme (cat "$HOME/.config/dotfiles-theme" 2>/dev/null)
+    if test -n "$saved_theme"
+        set_fzf_theme $saved_theme
+    end
+else
+    # Default theme
+    set_fzf_theme catppuccin
+end

@@ -8,10 +8,43 @@ export FZF_DEFAULT_OPTS="
 	--color=spinner:#f6c177,info:#9ccfd8
 	--color=pointer:#c4a7e7,marker:#eb6f92,prompt:#908caa"
 
+# Read paths from config file, fall back to defaults
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/tmux-sessionizer/config"
+DEFAULT_PATHS=(
+	"$HOME"
+	"$HOME/.config"
+	"$HOME/.dotfiles"
+)
+
+# Function to read paths from config
+read_paths() {
+	local paths=()
+
+	if [[ -f "$CONFIG_FILE" ]]; then
+		while IFS= read -r line || [[ -n "$line" ]]; do
+			# Skip empty lines and comments
+			[[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+			# Expand ~ to $HOME
+			line="${line/#\~/$HOME}"
+			# Only add if directory exists
+			[[ -d "$line" ]] && paths+=("$line")
+		done < "$CONFIG_FILE"
+	fi
+
+	# Use defaults if no valid paths found in config
+	if [[ ${#paths[@]} -eq 0 ]]; then
+		paths=("${DEFAULT_PATHS[@]}")
+	fi
+
+	printf '%s\n' "${paths[@]}"
+}
+
 if [[ $# -eq 1 ]]; then
 	selected=$1
 else
-	selected=$(find ~ ~/.config/kube ~/Work ~/Work/around25 ~/Work/ebbot ~/Work/optura ~/.dotfiles ~/Incubator ~/Incubator/Devops ~/Incubator/Opensource ~/Incubator/R\&D ~/Incubator/Sandbox -mindepth 1 -maxdepth 1 -type d | fzf)
+	# Build find command with all configured paths
+	mapfile -t search_paths < <(read_paths)
+	selected=$(find "${search_paths[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | fzf)
 fi
 
 if [[ -z $selected ]]; then

@@ -1,5 +1,48 @@
+# Plugin directories
 tmux/plugins
 nvim/plugin
+
+# Fish shell runtime
 fish/fish_variables
+
+# K9s
 k9s/skins
+
+# SSH configs (sensitive)
 ssh
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Log files
+*.log
+
+# Lazy.nvim lock file (uncomment if you want to ignore)
+# nvim/lazy-lock.json
+
+# Temporary files
+tmp/
+temp/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# Local customizations (not tracked)
+local/
+*.local
+
+# Fish completions cache
+fish/completions/*.fish
+
+# Oh-my-fish
+fish/conf.d/omf.fish

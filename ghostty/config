@@ -7,7 +7,7 @@ font-family-bold-italic = Berkeley Mono Variable Italic Bold Italic
 command = /usr/local/bin/fish --login -c "tmux attach -t default || tmux new -s default"
 
 shell-integration = fish
-theme = catppuccin-mocha.conf
+theme = Catppuccin Mocha
 window-decoration = false
 window-padding-x = 10
 window-padding-y = 2

@@ -1,0 +1,30 @@
+# tmux-sessionizer configuration
+# Add one directory path per line
+# Lines starting with # are treated as comments
+# Use ~ for home directory (will be expanded automatically)
+# Only existing directories will be used
+
+# Home and config
+~
+~/.config
+~/.dotfiles
+
+# Work directories
+~/Work
+~/Work/around25
+~/Work/ebbot
+~/Work/optura
+
+# Incubator projects
+~/Incubator
+~/Incubator/Devops
+~/Incubator/Opensource
+~/Incubator/R&D
+~/Incubator/Sandbox
+
+# Kubernetes configs
+~/.config/kube
+
+# Add your custom paths below:
+# ~/MyProjects
+# ~/Documents/Code

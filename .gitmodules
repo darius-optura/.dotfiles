@@ -1,3 +1,3 @@
-[submodule "bat/themes/Cattpuccin"]
-	path = bat/themes/Cattpuccin
+[submodule "bat/themes/Catppuccin"]
+	path = bat/themes/Catppuccin
 	url = git@github.com:catppuccin/sublime-text.git
