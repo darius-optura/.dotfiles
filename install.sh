@@ -272,6 +272,31 @@ install_fish_plugins() {
     print_success "Fish plugins installed"
 }
 
+# Install Node.js via nvm
+install_node() {
+    print_info "Installing Node.js..."
+
+    # Check if nvm.fish is available
+    if ! fish -c "type -q nvm" 2>/dev/null; then
+        print_warning "nvm.fish not available yet, Node.js installation will be skipped"
+        print_info "After restarting your shell, run: nvm install lts"
+        return
+    fi
+
+    # Install latest LTS version of Node
+    print_info "Installing Node.js LTS version..."
+    fish -c "nvm install lts" 2>/dev/null || {
+        print_warning "Could not install Node.js automatically"
+        print_info "After restarting your shell, run: nvm install lts"
+        return
+    }
+
+    # Set LTS as default
+    fish -c "nvm use lts" 2>/dev/null || true
+
+    print_success "Node.js LTS installed"
+}
+
 # Install Tmux Plugin Manager
 install_tpm() {
     local tpm_dir="$HOME/.tmux/plugins/tpm"
@@ -309,6 +334,7 @@ main() {
     create_directories
     symlink_configs
     install_fish_plugins
+    install_node
     install_tpm
     build_bat_cache
 
@@ -317,9 +343,10 @@ main() {
     echo ""
     print_info "Next steps:"
     echo "  1. Restart your terminal or run: exec fish"
-    echo "  2. Open tmux and press prefix + I to install plugins"
-    echo "  3. Edit $CONFIG_DIR/tmux-sessionizer/config to add your project paths"
-    echo "  4. Run 'make theme THEME=<name>' to switch themes (catppuccin, rose-pine, gruvbox)"
+    echo "  2. If Node.js wasn't installed automatically, run: nvm install lts"
+    echo "  3. Open tmux and press prefix + I to install plugins"
+    echo "  4. Edit $CONFIG_DIR/tmux-sessionizer/config to add your project paths"
+    echo "  5. Run 'make theme THEME=<name>' to switch themes (catppuccin, rose-pine, gruvbox)"
     echo ""
 
     if [[ -d "$BACKUP_DIR" ]]; then
