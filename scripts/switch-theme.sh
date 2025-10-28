@@ -102,7 +102,6 @@ update_alacritty_theme() {
         gruvbox)
             # Use catppuccin as fallback if gruvbox not available
             theme_file="catppuccin-mocha.toml"
-            print_info "Gruvbox not available for Alacritty, using Catppuccin Mocha"
             ;;
     esac
 
@@ -138,27 +137,24 @@ update_kitty_theme() {
 
 # Update Tmux theme
 update_tmux_theme() {
-    local flavor
+    local theme_file
     case "$THEME" in
         catppuccin)
-            flavor="mocha"
+            theme_file="catppuccin.conf"
             ;;
         rose-pine)
-            # Tmux uses catppuccin plugin, stick with mocha or add rose-pine plugin
-            flavor="mocha"
-            print_info "Rose Pine not configured for Tmux, keeping Catppuccin Mocha"
+            theme_file="rose-pine.conf"
             ;;
         gruvbox)
-            # Could switch to gruvbox tmux theme
-            flavor="mocha"
-            print_info "Gruvbox not configured for Tmux, keeping Catppuccin Mocha"
+            theme_file="gruvbox.conf"
             ;;
     esac
 
     if [[ -f "$CONFIG_DIR/tmux/tmux.conf" ]]; then
-        sed -i.bak "s/^set -g @catppuccin_flavor \".*\"/set -g @catppuccin_flavor \"$flavor\"/" "$CONFIG_DIR/tmux/tmux.conf"
+        # Replace the theme source line with the selected theme
+        sed -i.bak "s|^source-file ~/.config/tmux/themes/.*\.conf|source-file ~/.config/tmux/themes/$theme_file|" "$CONFIG_DIR/tmux/tmux.conf"
         rm -f "$CONFIG_DIR/tmux/tmux.conf.bak"
-        print_success "Tmux theme updated to Catppuccin $flavor"
+        print_success "Tmux theme updated to $THEME"
         print_info "Reload tmux config with: tmux source ~/.config/tmux/tmux.conf"
     fi
 }
@@ -186,27 +182,18 @@ update_bat_theme() {
     fi
 }
 
-# Update Starship palette
+# Update Starship theme
 update_starship_theme() {
-    local palette
-    case "$THEME" in
-        catppuccin)
-            palette="catppuccin_mocha"
-            ;;
-        rose-pine)
-            palette="catppuccin_mocha"
-            print_info "Rose Pine palette not configured for Starship, using Catppuccin Mocha"
-            ;;
-        gruvbox)
-            palette="gruvbox_dark"
-            ;;
-    esac
+    local preset_file="$CONFIG_DIR/starship/presets/$THEME.toml"
 
-    if [[ -f "$CONFIG_DIR/starship/starship.toml" ]]; then
-        sed -i.bak "s/^palette = \".*\"/palette = \"$palette\"/" "$CONFIG_DIR/starship/starship.toml"
-        rm -f "$CONFIG_DIR/starship/starship.toml.bak"
-        print_success "Starship palette updated to $palette"
+    if [[ ! -f "$preset_file" ]]; then
+        print_error "Starship preset not found: $preset_file"
+        return
     fi
+
+    # Copy the preset over the active config
+    cp "$preset_file" "$CONFIG_DIR/starship/starship.toml"
+    print_success "Starship theme updated to $THEME"
 }
 
 # Update Neovim colorscheme

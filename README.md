@@ -181,7 +181,12 @@ chsh -s $(which fish)
 
 ### Tmux plugins not loading
 
-Open tmux and press `prefix + I` (capital i) to install plugins.
+After installation or when switching themes for the first time:
+
+1. Open tmux
+2. Press `prefix + I` (capital i) to install all plugins
+3. All theme plugins (rose-pine, gruvbox) will be installed
+4. Theme switcher will activate the correct one
 
 ### Neovim plugins not loading
 
