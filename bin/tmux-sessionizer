@@ -43,7 +43,12 @@ if [[ $# -eq 1 ]]; then
 	selected=$1
 else
 	# Build find command with all configured paths
-	mapfile -t search_paths < <(read_paths)
+	# Use a while loop for compatibility with bash 3.2 (macOS default)
+	search_paths=()
+	while IFS= read -r path; do
+		search_paths+=("$path")
+	done < <(read_paths)
+
 	selected=$(find "${search_paths[@]}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | fzf)
 fi
 

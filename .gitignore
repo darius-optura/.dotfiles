@@ -1,5 +1,6 @@
 # Plugin directories
 tmux/plugins
+tmux-sessionizer/config
 nvim/plugin
 
 # Fish shell runtime
