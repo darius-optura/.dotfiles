@@ -32,6 +32,10 @@ update: ## Update all plugins and submodules
 	@fish -c "fisher update" 2>/dev/null || echo "Fisher not installed"
 	@echo "Updating Neovim plugins..."
 	@nvim --headless "+Lazy! sync" +qa 2>/dev/null || echo "Neovim plugins update skipped"
+	@echo "Updating Mason LSP servers..."
+	@nvim --headless "+MasonUpdate" +qa 2>/dev/null || echo "Mason update skipped"
+	@echo "Updating Treesitter parsers..."
+	@nvim --headless "+TSUpdate" +qa 2>/dev/null || echo "Treesitter update skipped"
 	@echo "Rebuilding bat cache..."
 	@bat cache --build
 	@echo ""
