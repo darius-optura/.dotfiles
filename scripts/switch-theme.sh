@@ -391,6 +391,17 @@ update_fzf_theme() {
     fi
 }
 
+# Update OpenCode theme
+update_opencode_theme() {
+    local opencode_config="$CONFIG_DIR/opencode/opencode.json"
+
+    if [[ -f "$opencode_config" ]]; then
+        sed -i.bak "s/\"theme\": \".*\"/\"theme\": \"$THEME\"/" "$opencode_config"
+        rm -f "$opencode_config.bak"
+        print_success "OpenCode theme updated to $THEME"
+    fi
+}
+
 # Save theme preference
 save_theme_preference() {
     echo "$THEME $VARIANT" > "$HOME/.config/dotfiles-theme"
@@ -418,6 +429,7 @@ main() {
     update_starship_theme
     update_fzf_theme
     update_neovim_theme
+    update_opencode_theme
     save_theme_preference
 
     echo ""
@@ -428,6 +440,7 @@ main() {
     echo "  • Reload tmux: tmux source ~/.config/tmux/tmux.conf"
     echo "  • FZF colors will apply immediately in new shell sessions"
     echo "  • Neovim: Restart Neovim to see the new colorscheme"
+    echo "  • OpenCode: Theme will apply on next launch"
     echo ""
 }
 

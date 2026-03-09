@@ -47,3 +47,6 @@ fish/completions/*.fish
 
 # Oh-my-fish
 fish/conf.d/omf.fish
+
+# Installation manifest (machine-specific)
+.install-manifest.json

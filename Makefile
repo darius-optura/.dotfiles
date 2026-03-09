@@ -16,13 +16,14 @@ install: ## Run full installation
 
 update: ## Update all plugins and submodules
 	@echo "Updating Homebrew..."
-	@brew update
-	@echo ""
-	@echo "Upgrading Homebrew packages..."
-	@brew upgrade
+	@if command -v brew >/dev/null 2>&1; then \
+		brew update && brew upgrade; \
+	else \
+		echo "Homebrew not installed. Run 'make install' first."; \
+	fi
 	@echo ""
 	@echo "Updating Git submodules..."
-	@git submodule update --remote --merge
+	@git submodule update --remote --merge 2>/dev/null || echo "No submodules to update"
 	@echo "Updating TPM plugins..."
 	@if [ -d "$$HOME/.tmux/plugins/tpm" ]; then \
 		$$HOME/.tmux/plugins/tpm/bin/update_plugins all; \
@@ -38,7 +39,7 @@ update: ## Update all plugins and submodules
 	@echo "Updating Treesitter parsers..."
 	@nvim --headless "+TSUpdate" +qa 2>/dev/null || echo "Treesitter update skipped"
 	@echo "Rebuilding bat cache..."
-	@bat cache --build
+	@bat cache --build 2>/dev/null || echo "bat not installed"
 	@echo ""
 	@echo "✓ All updates complete!"
 	@echo ""
@@ -82,25 +83,8 @@ restore: ## Restore from latest backup
 	fi; \
 	echo "✓ Restore complete"
 
-uninstall: ## Remove all symlinks and restore backups
-	@echo "Uninstalling dotfiles..."
-	@for config in ghostty fish nvim starship tmux bat lazygit alacritty kitty; do \
-		if [ -L "$$HOME/.config/$$config" ]; then \
-			rm "$$HOME/.config/$$config"; \
-			echo "  Removed $$config symlink"; \
-		fi; \
-	done
-	@if [ -L "$$HOME/.local/bin/tmux-sessionizer" ]; then \
-		rm "$$HOME/.local/bin/tmux-sessionizer"; \
-		echo "  Removed tmux-sessionizer symlink"; \
-	fi
-	@if [ -L "$$HOME/.local/bin/tmux-windowizer" ]; then \
-		rm "$$HOME/.local/bin/tmux-windowizer"; \
-		echo "  Removed tmux-windowizer symlink"; \
-	fi
-	@echo "✓ Uninstall complete"
-	@echo ""
-	@echo "To restore your previous configs, run: make restore"
+uninstall: ## Remove installed packages and symlinks (interactive)
+	@bash install.sh --uninstall
 
 theme: ## Switch theme (Usage: make theme THEME=catppuccin VARIANT=dark|light)
 	@if [ ! -f "scripts/switch-theme.sh" ]; then \
@@ -122,7 +106,7 @@ check: ## Verify installation health
 	done
 	@echo ""
 	@echo "Configuration Symlinks:"
-	@for config in ghostty fish nvim starship tmux bat lazygit; do \
+	@for config in ghostty fish nvim starship tmux bat lazygit opencode; do \
 		if [ -L "$$HOME/.config/$$config" ]; then \
 			echo "  ✓ $$config"; \
 		else \

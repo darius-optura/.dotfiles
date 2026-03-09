@@ -28,6 +28,7 @@ alias tls='tmux list-sessions'
 alias tns='tmux new-session -ds'
 alias lzd='lazydocker'
 alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules | fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}' | xargs nvim"
+alias oo="opencode"
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
@@ -51,11 +52,11 @@ export PATH="$PATH:/usr/sbin"
 export PATH="$PATH:/sbin"
 export PATH="$PATH:/opt/homebrew/bin"
 
-export BAT_THEME="cyberdream"
+export BAT_THEME="Catppuccin Mocha"
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 export K9SCONFIG="$HOME/.config/k9s"
 export K9S_CONFIG_PATH="$HOME/.config/k9s"
-export KUBECONFIG="./kubeconfig.yml"
+export OLD_KUBECONFIG="./kubeconfig.yml"
 export XDG_CONFIG_HOME="$HOME/.config"
 
 export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
