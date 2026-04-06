@@ -7,7 +7,7 @@ return {
     local basename = vim.fs.basename(cwd)
 
     _99.setup({
-      model = "anthropic/claude-opus-4-6",
+      model = "claude-opus-4-6",
       provider = _99.Providers.ClaudeCodeProvider,
       logger = {
         level = _99.DEBUG,
