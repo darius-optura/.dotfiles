@@ -782,6 +782,69 @@ symlink_configs() {
 }
 
 # =============================================================================
+# Claude Code Configuration
+# =============================================================================
+
+install_claude_config() {
+    print_info "Installing Claude Code config..."
+
+    local claude_src="$DOTFILES_DIR/claude"
+    local claude_dst="$HOME/.claude"
+
+    if [[ ! -d "$claude_src" ]]; then
+        print_warning "No claude/ dir in dotfiles, skipping"
+        return
+    fi
+
+    mkdir -p "$claude_dst"
+
+    # Symlink directories: skills, hooks, commands
+    local claude_dirs=("skills" "hooks" "commands")
+    for d in "${claude_dirs[@]}"; do
+        if [[ ! -d "$claude_src/$d" ]]; then
+            continue
+        fi
+        if [[ "$DRY_RUN" == true ]]; then
+            print_info "[DRY-RUN] Would symlink claude/$d"
+            continue
+        fi
+        # If existing non-symlink dir, back it up
+        if [[ -e "$claude_dst/$d" && ! -L "$claude_dst/$d" ]]; then
+            mv "$claude_dst/$d" "$claude_dst/$d.bak.$(date +%s)"
+            print_warning "Backed up existing $claude_dst/$d"
+        fi
+        ln -sfn "$claude_src/$d" "$claude_dst/$d"
+        print_success "Symlinked claude/$d"
+    done
+
+    # Symlink CLAUDE.md
+    if [[ -f "$claude_src/CLAUDE.md" ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            print_info "[DRY-RUN] Would symlink claude/CLAUDE.md"
+        else
+            if [[ -e "$claude_dst/CLAUDE.md" && ! -L "$claude_dst/CLAUDE.md" ]]; then
+                mv "$claude_dst/CLAUDE.md" "$claude_dst/CLAUDE.md.bak.$(date +%s)"
+            fi
+            ln -sfn "$claude_src/CLAUDE.md" "$claude_dst/CLAUDE.md"
+            print_success "Symlinked claude/CLAUDE.md"
+        fi
+    fi
+
+    # Render settings.json from template (substitute __HOME__)
+    if [[ -f "$claude_src/settings.json.template" ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            print_info "[DRY-RUN] Would render claude/settings.json"
+        else
+            if [[ -f "$claude_dst/settings.json" && ! -L "$claude_dst/settings.json" ]]; then
+                cp "$claude_dst/settings.json" "$claude_dst/settings.json.bak.$(date +%s)"
+            fi
+            sed "s|__HOME__|$HOME|g" "$claude_src/settings.json.template" > "$claude_dst/settings.json"
+            print_success "Rendered claude/settings.json"
+        fi
+    fi
+}
+
+# =============================================================================
 # Fish Shell Setup
 # =============================================================================
 
@@ -936,6 +999,21 @@ prompt_yes_no() {
     fi
 
     [[ "$response" =~ ^[Yy]$ ]]
+}
+
+uninstall_claude_config() {
+    print_info "Removing Claude Code symlinks..."
+    local claude_dst="$HOME/.claude"
+    for item in skills hooks commands CLAUDE.md; do
+        if [[ -L "$claude_dst/$item" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                print_info "[DRY-RUN] Would remove $claude_dst/$item"
+            else
+                rm "$claude_dst/$item"
+                print_success "Removed $claude_dst/$item"
+            fi
+        fi
+    done
 }
 
 uninstall_symlinks() {
@@ -1097,6 +1175,7 @@ uninstall_all() {
 
     # Remove symlinks first
     uninstall_symlinks
+    uninstall_claude_config
 
     # Uninstall packages (with prompts)
     uninstall_packages
@@ -1147,6 +1226,7 @@ main() {
     backup_existing
     create_directories
     symlink_configs
+    install_claude_config
 
     # Shell and plugins
     install_fish_plugins
