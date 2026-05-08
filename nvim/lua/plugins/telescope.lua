@@ -20,8 +20,8 @@ return {
 		pcall(require("telescope").load_extension, "fzf")
 		-- pcall(require('telescope').load_extension "harpoon")
 		-- pcall(require('telescope').load_extension "send_to_harpoon")
-		pcall(require("telescope").load_extension("ui-select"))
-		pcall(require("telescope").load_extension("refactoring"))
+		pcall(require("telescope").load_extension, "ui-select")
+		pcall(require("telescope").load_extension, "refactoring")
 
 		local builtin = require("telescope.builtin")
 		vim.keymap.set("n", "<leader>?", builtin.oldfiles, { desc = "[?] Find recently opened files" })

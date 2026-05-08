@@ -63,6 +63,7 @@ export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
 export PATH="$PATH:$HOME/.cargo/bin"
 export PATH="$PATH:$HOME/.local/bin"
 export EDITOR="nvim"
+export CLAUDE_CODE_NO_FLICKER=1
 
 # fish_config theme choose "Rose Pine Moon"
 # The next line updates PATH for the Google Cloud SDK.

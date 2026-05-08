@@ -29,6 +29,7 @@ return {
 			"markdown",
 			"markdown_inline",
 			"yaml",
+			"svelte",
 		}
 		local installed = require("nvim-treesitter.config").get_installed()
 		local to_install = vim.tbl_filter(function(lang)
@@ -38,11 +39,13 @@ return {
 			require("nvim-treesitter.install").install(to_install)
 		end
 
-		-- treesitter-based indentation
+		-- treesitter-based highlighting and indentation
 		vim.api.nvim_create_autocmd("FileType", {
-			callback = function()
-				if pcall(vim.treesitter.get_parser) then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+			callback = function(args)
+				local ok, parser = pcall(vim.treesitter.get_parser, args.buf)
+				if ok and parser then
+					vim.treesitter.start(args.buf)
+					vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end
 			end,
 		})

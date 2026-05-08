@@ -72,6 +72,7 @@ return {
 			jsonls = {},
 			docker_compose_language_service = {},
 			cssls = {},
+			svelte = {},
 
 			lua_ls = {
 				capabilities = capabilities,
