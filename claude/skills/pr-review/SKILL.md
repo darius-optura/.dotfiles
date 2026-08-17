@@ -115,6 +115,53 @@ the two in sync if either changes):
 Never invent project-specific rules that aren't grounded in REVIEW.md,
 CLAUDE.md, the stack checklist, or the visible code.
 
+## Phase 1.5 — Prior review state + CI status (PR mode only)
+
+Skip this phase entirely in local mode (there is no PR to read state from).
+In PR mode, pull the PR's existing review state and CI status **in parallel**
+before reviewing, so the pass is aware of what has already been said and what
+is already known to be broken:
+
+```bash
+# existing reviews + issue comments (the sticky lives here)
+gh pr view <N> --json reviews,comments
+# existing inline review comments — human and bot
+gh api repos/{owner}/{repo}/pulls/<N>/comments --paginate
+#   each: .path, .line / .original_line, .body, .user.login, .id, .in_reply_to_id
+# CI / status checks on the reviewed head SHA
+gh pr checks <N>   # or: gh api repos/{owner}/{repo}/commits/<HEAD_SHA>/check-runs
+```
+
+Use them:
+
+- **Dedup before posting (two signals).** Before opening a new thread for a
+  finding at `file:line`:
+  1. **Structural** — look for an existing inline comment on the same `path`
+     within a small line window (±~5 lines; lines drift across pushes, so an
+     exact match is not required).
+  2. **Semantic** — if a structural candidate exists, read its `body` and judge
+     whether it describes the **same failure mode**.
+
+  Both signals match → do **not** open a new thread. Either stay silent or
+  reply to the existing thread (agree / escalate / "verified, still open") via
+  `in_reply_to_id`. **Filter out the skill's own prior output first** — the
+  sticky (marker `<!-- pr-review:sticky -->`) and any comment whose
+  `user.login` equals `gh api user -q .login` — so it never dedups against
+  itself. Bot **SUMMARY tables** (free text, no line anchor) get the semantic
+  pass only; note that this is a weaker signal.
+
+- **Distrust resolved / dismissed threads.** A resolved thread is a *claim*,
+  not proof — verify the code actually fixed the issue before trusting it. An
+  author dismissing a still-valid finding becomes its own finding.
+
+- **Score only on findings you independently confirm.** A bot's unresolved
+  Critical that you reproduce counts at its real severity and moves the score.
+  A bot's word alone never moves the score.
+
+- **CI state feeds the verdict.** Failing required checks on the reviewed head
+  mean this cannot be a clean approve, regardless of the diff score — note the
+  failing checks by name. State CI status in the sticky summary (Phase 5).
+
 ## Phase 2 — Adversarial review (primary pass)
 
 **Stance.** Review as a principal / platform-level engineer. Distrust the
@@ -289,20 +336,48 @@ and post it once.
      ```
 
 5. **Sticky summary.** Post/update one summary comment (a PR issue comment,
-   separate from the review above), **score first**, in the REVIEW.md summary
-   format (fall back to `local-review`'s Phase 5 output shape when REVIEW.md
-   defines none). It starts with a hidden marker on its own line so re-runs can
-   find it:
+   separate from the review above), **score first**, everything wrapped by the
+   hidden marker so re-runs can find and replace it in place. The body, in
+   order:
+
+   1. `### Merge confidence: N/10` on its own line (the REVIEW.md score-first
+      requirement stays), then a one-line assessment.
+   2. **Provenance header**, this exact shape — so the sticky states which
+      commit was actually reviewed:
+      ```markdown
+      Reviewed head SHA: `<full head sha>`
+      Base: `<base-branch>` @ `<full base sha>`
+      ```
+      Resolve:
+      ```bash
+      HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)
+      BASE=$(gh pr view <N> --json baseRefName -q .baseRefName)
+      BASE_SHA=$(git rev-parse "origin/$BASE" 2>/dev/null \
+        || gh api repos/{owner}/{repo}/git/ref/heads/"$BASE" -q .object.sha)
+      ```
+   3. One **"scope inspected"** line — what was read: the diff, changed files,
+      tests, existing review threads (Phase 1.5), and CI.
+   4. **Findings sections** in the existing REVIEW.md / `local-review` shape —
+      Critical / Warnings / Suggestions tables, then Security — each finding
+      carrying its Phase 3 source label.
+   5. **Adversarial validation** paragraph — what you scrutinized and
+      **cleared** (this defends against false positives), plus a sentence
+      stating existing review findings were verified and not duplicated (e.g.
+      "Existing review findings are resolved and were not duplicated").
+   6. **CI inspected on this head** — one line listing the check groups and
+      their state (all green / which are failing), from Phase 1.5.
+   7. `Verdict: **Approve**` when the score is ≥ 9, else
+      `Verdict: **Request changes**`.
+
+   The marker sits at the very top of the body, on its own line:
 
    ```markdown
    <!-- pr-review:sticky -->
    ### Merge confidence: N/10
    ```
 
-   followed by the one-line assessment, scope line, summary, PR hygiene (see
-   the hygiene step below), Critical/Warning/Suggestion sections, security
-   assessment, and files reviewed — same structure as `local-review` Phase 5,
-   with each finding's source label from Phase 3.
+   Include the PR hygiene result (see the hygiene step below) within the
+   findings/assessment area, as `local-review` Phase 5 lays out.
 
    Update in place on re-run using REST end-to-end. Issue comments carry a
    numeric `id`; list them, pick the one whose body contains the marker, and
