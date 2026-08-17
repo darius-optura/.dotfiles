@@ -59,8 +59,14 @@ Decision tree:
    `pr-review/<N>`, or you were handed this cwd by a prior `pr-worktree` run)
    → skip provisioning; review here. Mode = PR.
 3. **No PR id** → auto-detect using `local-review`'s "Scope resolution":
-   - PR exists for the current branch → PR mode, scope
-     `git diff origin/$BASE...HEAD`.
+   - PR exists for the current branch → PR mode. Resolve the PR number and
+     author so Phase 5 has them:
+     ```bash
+     N=$(gh pr view --json number -q .number)
+     PR_AUTHOR=$(gh pr view --json author -q .author.login)
+     BASE=$(gh pr view --json baseRefName -q .baseRefName)
+     ```
+     Scope `git diff origin/$BASE...HEAD`.
    - Else a branch/working-tree diff exists → local mode with that scope.
    - Else nothing to review → stop and say so.
 
@@ -68,9 +74,10 @@ State the chosen scope + mode in one line at the start, e.g.
 `PR mode: PR #1234, git diff origin/main...HEAD (24 files, +812/-130)` or
 `Local mode: git diff HEAD (3 files, +40/-6)`.
 
-Record for later phases: `$BASE` (base ref), `$PR_AUTHOR`
-(`gh pr view <N> --json author -q .author.login`), and the owner/repo for API
-calls.
+Record for later phases (PR mode): `$N` (PR number), `$BASE` (base ref),
+`$PR_AUTHOR` (`gh pr view <N> --json author -q .author.login`), and the
+owner/repo for API calls. In local mode there is no PR number, base ref, or
+author to record.
 
 ## Phase 1 — Load criteria
 
@@ -92,7 +99,8 @@ Run these reads in parallel before touching the diff:
 If REVIEW.md is absent, use the standard fallback criteria — see
 `local-review`'s "Standard criteria fallback". Do not copy that prose here;
 load it from `local-review`. The always-flag headers you must scan for in the
-fallback are:
+fallback are (this list mirrors `local-review`'s "Always flag" section — keep
+the two in sync if either changes):
 
 - Security vulnerabilities (injection, auth bypass, secrets exposure)
 - Missing auth checks on API routes / server handlers
@@ -161,6 +169,12 @@ says otherwise (same skip list as `local-review`).
 Run a Codex adversarial pass over the same scope when the tooling is available;
 otherwise skip silently.
 
+**Gate on mode first.** The companion reviews a branch against a base, so run
+it only when a real base ref exists — PR mode, or local mode with a branch/ref
+range (a `$BASE` was resolved in Phase 0). Skip Phase 3 for working-tree scopes
+(`--staged`, `--unstaged`, `--working`, or the default working-tree diff) where
+there is no base branch to diff against.
+
 Resolve the companion script with `~` (never a hardcoded absolute path):
 
 ```bash
@@ -170,8 +184,8 @@ COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts
 
 If `command -v codex` fails **or** `$COMPANION` is empty → skip Phase 3
 silently (do not mention it in the output). Otherwise run it against the same
-scope; launch it in the background for large diffs so it does not block the
-primary pass:
+scope, passing `--base "$BASE"` only when `$BASE` is set; launch it in the
+background for large diffs so it does not block the primary pass:
 
 ```bash
 node "$COMPANION" adversarial-review --base "$BASE" --scope branch
@@ -213,73 +227,108 @@ against 9.
 
 ### PR mode
 
-1. **Inline threads.** Post one comment per finding, anchored to its
-   `file:line`. Submit them as a **single review** through the GitHub reviews
-   API with a `comments[]` array — a bare `gh pr review` cannot attach per-line
-   comments, so use the API with a comments payload:
+**The inline threads and the approve/request-changes verdict are ONE reviews
+POST, not separate calls.** A single `POST` to
+`repos/{owner}/{repo}/pulls/<N>/reviews` carries the verdict as `event`, a
+short review body, and every inline thread in a `comments[]` array. A bare
+`gh pr review` cannot attach per-line comments, and splitting the event off
+into a second call would submit a redundant review — so build one JSON payload
+and post it once.
 
-   ```bash
-   # owner/repo/N resolved in Phase 0; EVENT is COMMENT here (the approve/
-   # request-changes event is submitted separately in step 3 to keep the
-   # inline batch independent of the verdict).
-   gh api --method POST repos/{owner}/{repo}/pulls/<N>/reviews \
-     -f event=COMMENT \
-     -f body="See inline comments." \
-     --input review.json   # review.json: { "comments": [ {path, line, side, body}, ... ] }
-   ```
+1. **Decide the review event** from the score and authorship. This is the
+   `event` field of the single reviews POST below:
+   - Score ≥ 9 **and** not self-authored → `APPROVE`.
+   - Score ≥ 9 **and** self-authored (`gh api user -q .login` equals
+     `$PR_AUTHOR`) → GitHub blocks self-approve, so use `COMMENT` here and add
+     the `claude-approved` label in step 4 instead.
+   - Score < 9 → `REQUEST_CHANGES`.
 
-   Each comment's `path` is the file relative to repo root, `line` is a line
-   present in the PR diff, `side` is `RIGHT` for added/changed lines, and
-   `body` states severity + the concrete fix + the named failure mode. Skip a
-   finding's inline comment (fold it into the sticky instead) if its line is
+2. **Build the inline comments.** One entry per finding, anchored to its
+   `file:line`. Each entry's `path` is the file relative to repo root, `line`
+   is a line present in the PR diff, `side` is `RIGHT` for added/changed lines,
+   and `body` states severity + the concrete fix + the named failure mode. Skip
+   a finding's inline comment (fold it into the sticky instead) if its line is
    not part of the diff hunks — GitHub rejects comments off the diff.
 
-2. **Sticky summary.** Post/update one summary comment, **score first**, in the
-   REVIEW.md summary format (fall back to `local-review`'s Phase 5 output shape
-   when REVIEW.md defines none). It starts with a hidden marker on its own line
-   so re-runs can find it:
+3. **Post the single review.** Build ONE JSON payload — `event`, `body`,
+   `comments[]` together — and pass it via `--input` (or stdin) with **no `-f`
+   fields** (mixing `-f` with `--input` drops the file's body and creates a
+   stuck PENDING review that never posts):
+
+   ```bash
+   # owner/repo/N resolved in Phase 0; EVENT decided in step 1.
+   cat > review.json <<'JSON'
+   {
+     "event": "REQUEST_CHANGES",
+     "body": "<short review body — points at the sticky + inline threads>",
+     "comments": [
+       { "path": "src/foo.ts", "line": 42, "side": "RIGHT",
+         "body": "[Warning] <fix> — <named failure mode>" }
+     ]
+   }
+   JSON
+   gh api --method POST repos/{owner}/{repo}/pulls/<N>/reviews --input review.json
+   ```
+
+   Set `"event"` to the value from step 1. With an empty `comments` array this
+   still submits the verdict as a plain review.
+
+4. **Labels.**
+   - `APPROVE` or the self-authored `COMMENT`-with-label case → ensure the
+     label exists, then add it tolerantly (both `|| true` so a pre-existing
+     label or a repo without label perms does not abort the run):
+     ```bash
+     gh label create claude-approved --color 2ea44f --description "pr-review passed" 2>/dev/null || true
+     gh pr edit <N> --add-label claude-approved 2>/dev/null || true
+     ```
+     For the self-authored case also add an approval comment noting the label
+     fallback (GitHub blocks self-approve).
+   - `REQUEST_CHANGES` → remove any stale approval label:
+     ```bash
+     gh pr edit <N> --remove-label claude-approved 2>/dev/null || true
+     ```
+
+5. **Sticky summary.** Post/update one summary comment (a PR issue comment,
+   separate from the review above), **score first**, in the REVIEW.md summary
+   format (fall back to `local-review`'s Phase 5 output shape when REVIEW.md
+   defines none). It starts with a hidden marker on its own line so re-runs can
+   find it:
 
    ```markdown
    <!-- pr-review:sticky -->
    ### Merge confidence: N/10
    ```
 
-   followed by the one-line assessment, scope line, summary, PR hygiene,
-   Critical/Warning/Suggestion sections, security assessment, and files
-   reviewed — same structure as `local-review` Phase 5, with each finding's
-   source label from Phase 3.
+   followed by the one-line assessment, scope line, summary, PR hygiene (see
+   the hygiene step below), Critical/Warning/Suggestion sections, security
+   assessment, and files reviewed — same structure as `local-review` Phase 5,
+   with each finding's source label from Phase 3.
 
-   Update in place on re-run: find the prior sticky by the marker —
+   Update in place on re-run using REST end-to-end. Issue comments carry a
+   numeric `id`; list them, pick the one whose body contains the marker, and
+   extract that numeric id:
 
    ```bash
-   PRIOR=$(gh pr view <N> --json comments \
-     -q '.comments[] | select(.body | contains("<!-- pr-review:sticky -->")) | .url' | head -1)
+   STICKY_ID=$(gh api repos/{owner}/{repo}/issues/<N>/comments --paginate \
+     -q '.[] | select(.body | contains("<!-- pr-review:sticky -->")) | .id' | head -1)
    ```
 
-   If `$PRIOR` is found, edit that comment (e.g. via
-   `gh api --method PATCH` on the comment id). Otherwise create a new comment
-   (`gh pr comment <N> --body-file sticky.md`).
+   If `$STICKY_ID` is non-empty, update that comment in place:
 
-3. **Verdict.**
-   - **Score ≥ 9 → approve.** `gh pr review <N> --approve --body "<one-liner>"`.
-     But GitHub blocks approving your own PR, so if the caller authored it, use
-     the label fallback instead:
+   ```bash
+   gh api -X PATCH repos/{owner}/{repo}/issues/comments/$STICKY_ID -f body=@sticky.md
+   ```
 
-     ```bash
-     if [ "$(gh api user -q .login)" = "$PR_AUTHOR" ]; then
-       gh pr edit <N> --add-label claude-approved
-       gh pr comment <N> --body "Approved by pr-review: N/10. (Self-authored — GitHub blocks self-approve, applied claude-approved label instead.)"
-     else
-       gh pr review <N> --approve --body "Approved by pr-review: N/10."
-     fi
-     ```
+   Otherwise create a new one:
 
-   - **Score < 9 → request changes.**
+   ```bash
+   gh api repos/{owner}/{repo}/issues/<N>/comments -f body=@sticky.md
+   ```
 
-     ```bash
-     gh pr review <N> --request-changes --body "Requesting changes: N/10. See sticky summary and inline threads."
-     gh pr edit <N> --remove-label claude-approved 2>/dev/null || true
-     ```
+**PR hygiene.** PR mode always has a PR, so grade hygiene: pull the title and
+description (`gh pr view <N> --json title,body`) and evaluate them exactly as
+`local-review`'s "Phase 4: PR hygiene" describes, then render the result in the
+sticky's PR hygiene section.
 
 ### Local mode (no PR)
 
@@ -291,10 +340,15 @@ There is no PR to approve or request changes on.
 
 Run every phase exactly as above, but perform **no** writes: post no comments,
 submit no review, approve/request nothing, touch no labels. Instead print
-exactly what it *would* post — the inline-comment payload (path/line/body per
-finding), the full sticky body, and the approve-vs-request-changes decision
-(including whether the self-author label fallback would trigger). Make zero
-`gh`/`api` write calls.
+exactly what it *would* post — the review JSON payload (event + body +
+comments[] with path/line per finding), the full sticky body, and the
+approve-vs-request-changes decision (including whether the self-author label
+fallback would trigger). Make zero `gh`/`api` write calls.
+
+`--dry-run` also **no-ops `--archive`.** Archiving's real destructive step is
+`supacode worktree archive`, not a `gh` call, so the "no gh writes" gate does
+not cover it — under `--dry-run`, skip the archive entirely and just print that
+it would archive the worktree.
 
 ### `--archive`
 
