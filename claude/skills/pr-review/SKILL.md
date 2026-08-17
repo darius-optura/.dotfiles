@@ -54,6 +54,19 @@ score line, the provenance header, and the `Verdict:` line.
 These STE rules mirror `claude/skills/tldr/SKILL.md` ("STE — ASD-STE100"
 section); keep the two in sync if either changes.
 
+## Common shortcuts that are FORBIDDEN
+
+Do not take any of these shortcuts. Each one broke a live run:
+
+- Do NOT skip Phase 3 (Codex) when `codex` is installed. Run the availability
+  check, then run the pass.
+- Do NOT read the base SHA from a local ref. Use the PR's `baseRefOid` or the
+  merge-base, never a bare local `origin/<base>` tip.
+- Do NOT post before the Phase 5 "Pre-post verification" gate passes.
+- Do NOT invent a finding without a named failure mode.
+- Do NOT dedup against your own prior sticky or threads — filter your own
+  output (`user.login == $ME`, sticky marker) first.
+
 ## Inputs
 
 Arguments can appear in any order. Parse by format, not position:
@@ -303,29 +316,42 @@ be, not just "this is wrong"), and the named failure mode.
 Skip generated files, vendor code, and formatting-only changes unless REVIEW.md
 says otherwise (same skip list as `local-review`).
 
-## Phase 3 — Codex second eyes (auto when present)
+## Phase 3 — Codex second eyes (MANDATORY when the tooling is present)
 
-Run a Codex adversarial pass over the same scope when the tooling is available;
-otherwise skip silently.
+This phase is not optional. You MUST run the availability check every time. You
+MUST run the Codex pass whenever the tooling is present. **Do not skip this
+phase because the diff is large or slow. The only allowed skip is genuine
+absence of the tooling.**
 
-**Gate on mode first.** The companion reviews a branch against a base, so run
-it only when a real base ref exists — PR mode, or local mode with a branch/ref
-range (a `$BASE` was resolved in Phase 0). Skip Phase 3 for working-tree scopes
-(`--staged`, `--unstaged`, `--working`, or the default working-tree diff) where
-there is no base branch to diff against.
-
-Resolve the companion script with `~` (never a hardcoded absolute path):
+**Step 1 — availability check (always run).** You MUST run both checks:
 
 ```bash
+command -v codex
 COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs 2>/dev/null \
   || ls ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | head -1)
 ```
 
-If `command -v codex` fails **or** `$COMPANION` is empty → skip Phase 3
-silently (do not mention it in the output). Otherwise run it against the same
-scope. Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0 leaves it
-unset for pure working-tree scopes); launch it in the background for large
-diffs so it does not block the primary pass:
+Use `~` for the companion path — never a hardcoded absolute path.
+
+**Step 2 — decide from the check result:**
+
+- **`codex` present AND `$COMPANION` non-empty → you MUST run the Codex pass.**
+  There is no "skip for brevity, size, or time" option. A large or slow diff is
+  not a reason to skip — launch it in the background instead (see Step 3).
+- **`codex` absent OR `$COMPANION` empty → skip the pass.** A silent skip is
+  FORBIDDEN. The sticky (Phase 5) MUST state, verbatim: "Codex second pass
+  skipped — `codex` CLI not installed." The sticky always states whether Codex
+  ran or the reason it did not.
+
+**Gate on mode.** The companion reviews a branch against a base, so it needs a
+real base ref — PR mode, or local mode with a branch/ref range (`$BASE` set in
+Phase 0). For a pure working-tree scope (`--staged`, `--unstaged`, `--working`)
+there is no base branch; state in the sticky that Codex needs a base ref and
+did not run for this scope.
+
+**Step 3 — run it.** Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0
+leaves it unset for pure working-tree scopes). Launch it in the background for
+large diffs so it does not block the primary pass:
 
 ```bash
 if [ -n "$BASE" ]; then
@@ -370,6 +396,27 @@ against 9.
 ## Phase 5 — Output and side effects
 
 ### PR mode
+
+**Pre-post verification (gate — the FIRST step, run before any write).** Decide
+the event (step 1) and build the findings (step 2) first, then confirm every
+item below. Each item is a hard gate. **If any item fails, STOP. Do not post.
+Report the failed item to the user and fix it first.** Do not run any write
+call (`gh pr review`, `gh api` POST/PATCH, `gh pr edit`, `--archive`) until
+every item passes:
+
+1. Codex ran (Phase 3), OR the sticky states the tooling was absent with the
+   verbatim line "Codex second pass skipped — `codex` CLI not installed."
+2. The provenance SHAs came from the PR (`headRefOid` / `baseRefOid` or the
+   merge-base), NOT a bare local `origin/<base>` tip.
+3. The `Verdict:` line matches the final `event`: Approve ↔ `APPROVE`, Request
+   changes ↔ `REQUEST_CHANGES`, Comment ↔ `COMMENT`.
+4. `$ME` and `$PR_AUTHOR` were both resolved. If they match, Rule 0
+   (self-author ⇒ `COMMENT`) was applied.
+5. Under `--dry-run`: zero writes were made — no `gh pr review`, no `gh api`
+   POST/PATCH, no `gh pr edit`, no `--archive`.
+6. Every posted finding carries a severity tag, an in-diff `file:line`, a
+   concrete fix, and a named failure mode. The dedup pass (Phase 1.5) ran
+   against the existing threads.
 
 **The inline threads and the approve/request-changes verdict are ONE reviews
 POST, not separate calls.** A single `POST` to
@@ -496,9 +543,13 @@ and post it once.
       **cleared** (this defends against false positives), plus a sentence
       stating existing review findings were verified and not duplicated (e.g.
       "Existing review findings are resolved and were not duplicated").
-   6. **CI inspected on this head** — one line listing the check groups and
+   6. **Codex second pass** — one line stating the Phase 3 result: that Codex
+      ran, or the verbatim line "Codex second pass skipped — `codex` CLI not
+      installed", or that Codex needs a base ref and did not run for this scope.
+      This line is required every run.
+   7. **CI inspected on this head** — one line listing the check groups and
       their state (all green / which are failing), from Phase 1.5.
-   7. **Verdict line — derive it from the FINAL `event` from step 1, not from
+   8. **Verdict line — derive it from the FINAL `event` from step 1, not from
       the score** (the CI gate and Rule 0 can move the event away from the
       score):
       - `event = APPROVE` → `Verdict: **Approve**`.
