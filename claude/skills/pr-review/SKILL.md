@@ -473,6 +473,10 @@ every item passes:
 6. Every posted finding carries a severity tag, an in-diff `file:line`, a
    concrete fix, and a named failure mode. The dedup pass (Phase 1.5) ran
    against the existing threads.
+7. `sticky.md` follows the mandated template. Grep it and confirm it contains,
+   in order, the marker `<!-- pr-review:sticky -->`, `### Merge confidence:`,
+   `Reviewed head SHA:`, `Base:`, and `Verdict:`. Any anchor line missing →
+   STOP, do not post, report the missing part.
 
 **The inline threads and the approve/request-changes verdict are ONE reviews
 POST, not separate calls.** A single `POST` to
@@ -556,95 +560,113 @@ and post it once.
      stale approval label, same as `REQUEST_CHANGES`.
 
 5. **Sticky summary.** Post/update one summary comment (a PR issue comment,
-   separate from the review above), **score first**, everything wrapped by the
-   hidden marker so re-runs can find and replace it in place. The body, in
-   order:
+   separate from the review above), score first, wrapped by the hidden marker
+   so re-runs can find and replace it in place.
 
-   1. `### Merge confidence: N/10` on its own line (the REVIEW.md score-first
-      requirement stays), then a one-line assessment.
-   2. **Provenance header**, this exact shape — so the sticky states which
-      commit was actually reviewed:
-      ```markdown
-      Reviewed head SHA: `<full head sha>`
-      Base: `<base-branch>` @ `<full base sha>`
-      ```
-      The provenance header must report the SHAs the reviewed diff actually
-      used. Reuse `$HEAD_SHA` from Phase 1.5. Resolve the base from the PR
-      itself, not from a local ref — a local `origin/<base>` tip differs from
-      the PR's real base:
-      ```bash
-      BASE=$(gh pr view <N> --json baseRefName -q .baseRefName)
-      BASE_SHA=$(gh pr view <N> --json baseRefOid -q .baseRefOid)
-      ```
-      A `gh pr diff` review diffs against the merge-base, so `baseRefOid` is the
-      PR base ref tip, not the merge-base — label it as the base ref in the
-      header.
-
-      In the worktree-checkout path the local refs are the reviewed ones, and
-      the scope `origin/$BASE...HEAD` is a three-dot diff against the
-      merge-base. So report the merge-base SHA the diff actually used:
-      ```bash
-      # worktree mode only — the checked-out refs are what the diff used
-      HEAD_SHA=$(git rev-parse HEAD)
-      BASE_SHA=$(git merge-base HEAD "origin/$BASE")
-      ```
-      Both paths report the base the diff compared against; keep that meaning
-      consistent.
-   3. One **"scope inspected"** line — what was read: the diff, changed files,
-      tests, existing review threads (Phase 1.5), and CI.
-   4. **Findings sections** in the existing REVIEW.md / `local-review` shape —
-      Critical / Warnings / Suggestions tables, then Security — each finding
-      carrying its Phase 3 source label.
-   5. **Adversarial validation** paragraph — what you scrutinized and
-      **cleared** (this defends against false positives), plus a sentence
-      stating existing review findings were verified and not duplicated (e.g.
-      "Existing review findings are resolved and were not duplicated").
-   6. **Codex second pass** — one line stating the Phase 3 result: that Codex
-      ran against the PR head, or the verbatim line "Codex second pass skipped
-      — `codex` CLI not installed", or that Codex needs a base ref and did not
-      run for this scope, or "Codex second pass invalid — could not check out
-      the PR head." This line is required every run.
-   7. **CI inspected on this head** — one line listing the check groups and
-      their state (all green / which are failing), from Phase 1.5.
-   8. **Verdict line — derive it from the FINAL `event` from step 1, not from
-      the score** (the CI gate and Rule 0 can move the event away from the
-      score):
-      - `event = APPROVE` → `Verdict: **Approve**`.
-      - `event = REQUEST_CHANGES` → `Verdict: **Request changes**`.
-      - `event = COMMENT` → `Verdict: **Comment (not approved)**`.
-
-      When a check blocks the verdict, name that check in the verdict line,
-      matching the body text from step 1.
-
-   The marker sits at the very top of the body, on its own line:
+   **Copy this template verbatim into `sticky.md` and fill every `<…>`. Do not
+   drop, reorder, or rename sections. Keep the marker as the first line.**
 
    ```markdown
    <!-- pr-review:sticky -->
-   ### Merge confidence: N/10
+   ### Merge confidence: <N>/10
+   <one-line assessment>
+
+   Reviewed head SHA: `<HEAD_SHA>`
+   Base: `<BASE_BRANCH>` @ `<BASE_SHA>`
+
+   Provenance note: <baseRefOid == merge-base; local origin tip NOT used>
+
+   Scope inspected: <one line>
+
+   <details open><summary>Summary</summary>
+
+   <what the PR does>
+
+   </details>
+
+   #### Critical Issues (<n>)
+   <table or "None.">
+
+   #### Warnings (<n>)
+   <table or "None.">
+
+   #### Suggestions
+   <numbered list or "None.">
+
+   #### Security
+   <assessment or "No security concerns found.">
+
+   #### PR Hygiene
+   <pass/fail table>
+
+   Adversarial validation: <distrust passes cleared; existing findings verified, not duplicated>
+
+   Codex second pass: <ran — verdict/summary | "Codex second pass skipped — codex CLI not installed" | "Codex second pass invalid — could not check out the PR head">
+
+   CI inspected on this head: <check groups + states; note acknowledged false positives>
+
+   Verdict: **<Approve | Request changes | Comment (not approved)>** — <blocking reason if any>
    ```
 
-   Include the PR hygiene result (see the hygiene step below) within the
-   findings/assessment area, as `local-review` Phase 5 lays out.
+   Fill the template from the phases:
 
-   Update in place on re-run using REST end-to-end. Issue comments carry a
-   numeric `id`; list them, pick the one whose body contains the marker, and
-   extract that numeric id:
+   - **Merge confidence + verdict** — the `Verdict:` line derives from the
+     FINAL `event` from step 1, not from the score (the CI gate and Rule 0 can
+     move the event off the score): `APPROVE` → `**Approve**`,
+     `REQUEST_CHANGES` → `**Request changes**`, `COMMENT` →
+     `**Comment (not approved)**`. Name the blocking check when one blocks.
+   - **Provenance** — reuse `$HEAD_SHA` from Phase 1.5. Resolve the base from
+     the PR, not from a local ref — a local `origin/<base>` tip differs from the
+     PR's real base:
+     ```bash
+     BASE=$(gh pr view <N> --json baseRefName -q .baseRefName)
+     BASE_SHA=$(gh pr view <N> --json baseRefOid -q .baseRefOid)
+     ```
+     A `gh pr diff` review diffs against the merge-base, so `baseRefOid` is the
+     PR base ref tip. In the worktree-checkout path the local refs are the
+     reviewed ones, and the scope `origin/$BASE...HEAD` is a three-dot diff, so
+     report the merge-base SHA the diff actually used:
+     ```bash
+     # worktree mode only — the checked-out refs are what the diff used
+     HEAD_SHA=$(git rev-parse HEAD)
+     BASE_SHA=$(git merge-base HEAD "origin/$BASE")
+     ```
+     Both paths report the base the diff compared against; keep that meaning
+     consistent.
+   - **Findings sections** — use the existing REVIEW.md / `local-review` shape,
+     each finding carrying its Phase 3 source label.
+   - **Codex second pass** — state the Phase 3 result verbatim as the template
+     shows.
+   - **Adversarial validation** — what you scrutinized and cleared, plus a
+     sentence that existing findings were verified and not duplicated.
+
+   When the repo defines a REVIEW.md summary shape, reuse it — but the anchor
+   lines the Pre-post gate checks (marker, `### Merge confidence:`,
+   `Reviewed head SHA:`, `Base:`, `Verdict:`) are always required.
+
+   Post the **contents** of `sticky.md`, never its path. Update in place on
+   re-run using REST end-to-end. List issue comments, pick the one whose body
+   contains the marker, and read its numeric `id`:
 
    ```bash
    STICKY_ID=$(gh api repos/{owner}/{repo}/issues/<N>/comments --paginate \
      -q '.[] | select(.body | contains("<!-- pr-review:sticky -->")) | .id' | head -1)
    ```
 
+   **WARNING: never use `-f body=@file`.** Lowercase `-f` posts the literal
+   string `@file`; it does not read the file. Pass the contents with
+   `$(cat file)` — or use `-F body=@file` (capital `F`, which reads the file).
+
    If `$STICKY_ID` is non-empty, update that comment in place:
 
    ```bash
-   gh api -X PATCH repos/{owner}/{repo}/issues/comments/$STICKY_ID -f body=@sticky.md
+   gh api -X PATCH repos/{owner}/{repo}/issues/comments/$STICKY_ID -f body="$(cat sticky.md)"
    ```
 
    Otherwise create a new one:
 
    ```bash
-   gh api repos/{owner}/{repo}/issues/<N>/comments -f body=@sticky.md
+   gh api repos/{owner}/{repo}/issues/<N>/comments -f body="$(cat sticky.md)"
    ```
 
 **PR hygiene.** PR mode always has a PR, so grade hygiene: pull the title and
