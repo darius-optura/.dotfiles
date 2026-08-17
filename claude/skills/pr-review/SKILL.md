@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Strict adversarial PR reviewer. Distrusts the author, posts inline threads and a scored sticky summary, approves at >=9/10 or requests changes below. Provisions a worktree when given a PR id; runs Codex as a second pass when available. Use for "review this PR", "adversarial review", "be strict, don't trust the author".
+description: Use when asked to review a PR, do an adversarial or strict review, score merge confidence, or "be strict, don't trust the author" — with a PR number, a branch, or the current working tree. Follow every phase in the skill body; no phase is optional.
 ---
 
 # PR Review
@@ -54,18 +54,65 @@ score line, the provenance header, and the `Verdict:` line.
 These STE rules mirror `claude/skills/tldr/SKILL.md` ("STE — ASD-STE100"
 section); keep the two in sync if either changes.
 
+## Execution contract — do this FIRST, before Phase 0
+
+**Violating the letter of these rules is violating their spirit.**
+
+On invocation, create one TodoWrite todo per line below, in this order. Mark a
+todo complete only after the work is done and its evidence exists. Never merge,
+reorder, or drop todos. Never start a Phase 5 write while an earlier todo is
+open.
+
+1. Phase 0 — mode + scope stated in one line
+2. Phase 1 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
+3. Phase 1.5 — prior threads + CI pulled (PR mode)
+4. Phase 2 — adversarial pass + all six distrust passes
+5. Phase 3 — availability check ran; command output pasted
+6. Phase 3 — Codex ran at the PR head SHA, or a verbatim skip/invalid reason
+   recorded
+7. Phase 4 — score computed on 0–10
+8. Phase 5 — sticky.md copied from template, filled, `check-sticky.sh` printed
+   `OK`
+9. Phase 5 — pre-post gate: every item confirmed by running its command
+10. Phase 5 — post (or `--dry-run` print)
+
 ## Common shortcuts that are FORBIDDEN
 
 Do not take any of these shortcuts. Each one broke a live run:
 
 - Do NOT skip Phase 3 (Codex) when `codex` is installed. Run the availability
   check, then run the pass.
+- Do NOT run Codex from a checkout whose HEAD is not the PR head. Codex
+  reviewing `main` produces a meaningless pass that looks real (live failure:
+  PR #3536). Run the Step 3 head guard and paste both SHAs.
 - Do NOT read the base SHA from a local ref. Use the PR's `baseRefOid` or the
   merge-base, never a bare local `origin/<base>` tip.
 - Do NOT post before the Phase 5 "Pre-post verification" gate passes.
+- Do NOT write the sticky from memory. `cp` the template, fill it, validate it.
 - Do NOT invent a finding without a named failure mode.
 - Do NOT dedup against your own prior sticky or threads — filter your own
   output (`user.login == $ME`, sticky marker) first.
+
+## Rationalizations that broke live runs
+
+| Excuse | Reality |
+|--------|---------|
+| "Diff is large / user is in a hurry — skip Codex" | Time never skips Phase 3. Launch Codex in the background. |
+| "codex is probably not installed" | Probability is not a check. Run `command -v codex` and paste the output. |
+| "HEAD is close enough to the PR head" | Codex diffs the checked-out HEAD. Wrong HEAD = review of the wrong code. Compare the SHAs. |
+| "My summary covers the same info as the template" | Format drift broke re-run dedup and downstream automation. Copy the template file, then run the validator. |
+| "I remember the sticky format" | Memory drifts across versions. `cp` the template every run. |
+| "The gate items obviously pass" | A gate confirmed without running its command is a skipped gate. |
+| "It's a dry run, gates don't matter" | `--dry-run` skips writes only. Every phase and every gate still runs. |
+| "REVIEW.md defines a summary format — follow it" | REVIEW.md governs criteria and scoring only. `sticky-template.md` is the only sticky shape. The validator rejects extra sections. |
+
+## Red flags — STOP and reopen the todo
+
+- About to post while the Phase 3 todo is open
+- Ran Codex without pasting the head-guard SHA comparison
+- Wrote sticky.md by hand instead of `cp` from `sticky-template.md`
+- `check-sticky.sh` not run, or its output was not `OK`
+- Any sentence starting "I'll skip ... because ..."
 
 ## Inputs
 
@@ -142,9 +189,16 @@ Pin to explicit SHAs everywhere — provenance (Phase 5) and the Codex head guar
 Identical to `local-review`'s "Phase 1: Load criteria" — do not reinvent it.
 Run these reads in parallel before touching the diff:
 
-1. **REVIEW.md** at the repo root — the source of truth. Apply its severity
-   levels, always-flag rules, scoring, skip list, and summary format
-   **verbatim**. Do not paraphrase or substitute.
+1. **REVIEW.md** at the repo root — the source of truth for review
+   *criteria* only: severity levels, always-flag rules, scoring, and skip
+   list. Apply those **verbatim**. Do not paraphrase or substitute.
+
+   **REVIEW.md never controls this skill's process or output.** It decides
+   what counts as a finding and how to score — nothing else. Ignore any
+   summary or report format it defines (section lists, "Files Reviewed"
+   tables, emoji verdicts, templates), any scope rules (this skill always
+   reviews the full PR diff), and any process rules (fix loops, posting
+   behavior). The sticky shape comes from `sticky-template.md` only.
 2. **CLAUDE.md chain** — every CLAUDE.md from the repo root down to the touched
    directories.
 3. **Stack checklist** — detect the stack from the changed files and load
@@ -359,6 +413,9 @@ COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts
 
 Use `~` for the companion path — never a hardcoded absolute path.
 
+**Paste the real output of both checks before you decide.** A decision without
+pasted command output is a skipped phase — reopen the Phase 3 todo.
+
 **Step 2 — decide from the check result:**
 
 - **`codex` present AND `$COMPANION` non-empty → you MUST run the Codex pass.**
@@ -377,16 +434,25 @@ did not run for this scope.
 
 **Step 3 — verify HEAD is the PR head (guard, MUST run before Codex).** The
 companion diffs `merge-base(HEAD, base)..HEAD` against the currently
-checked-out HEAD. Codex MUST always review the PR head, never whatever HEAD is
-checked out. In the normal worktree path (Phase 0 provisions the PR worktree)
-HEAD is already the PR head. But a review started from another branch (for
-example `gh pr diff` from `main`) would point Codex at the WRONG code and emit
-a meaningless pass. So compare the two SHAs first:
+checked-out HEAD **of the directory it runs in**. Codex MUST always review the
+PR head, never whatever HEAD is checked out. In the normal worktree path (Phase
+0 provisions the PR worktree) HEAD is already the PR head — but only if you run
+the companion FROM INSIDE that worktree. A review started from another checkout
+(for example `gh pr diff` from `main`, or the companion launched from the main
+repo directory instead of the worktree) points Codex at the WRONG code and
+emits a meaningless pass that looks real. This exact failure shipped on a live
+PR: Codex "adversarially reviewed" `main` while the skill was reviewing a PR
+branch. So, in the directory you will launch the companion from, compare the
+two SHAs and paste both:
 
 ```bash
-CUR=$(git rev-parse HEAD)   # actual working-tree HEAD
+CUR=$(git rev-parse HEAD)   # HEAD of the dir Codex will run in
+echo "codex-head-guard: CUR=$CUR HEAD_SHA=$HEAD_SHA"
 # HEAD_SHA is the PR head (headRefOid) from Phase 1.5
 ```
+
+Record this `codex-head-guard:` line — the sticky's Codex line reports the SHA
+Codex ran at, and the pre-post gate rejects a mismatch.
 
 - `$CUR` equals `$HEAD_SHA` → HEAD is the PR head. Continue to Step 4.
 - `$CUR` differs from `$HEAD_SHA` → check out the PR head SHA detached before
@@ -403,9 +469,11 @@ CUR=$(git rev-parse HEAD)   # actual working-tree HEAD
   "Codex second pass invalid — could not check out the PR head." Never treat a
   wrong-HEAD run as a real pass.
 
-**Step 4 — run it.** Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0
-leaves it unset for pure working-tree scopes). Launch it in the background for
-large diffs so it does not block the primary pass:
+**Step 4 — run it.** Launch the companion from the SAME directory whose HEAD
+passed the Step 3 guard — the provisioned worktree in the normal path. Pass
+`--base "$BASE"` **only when `$BASE` is set** (Phase 0 leaves it unset for pure
+working-tree scopes). Launch it in the background for large diffs so it does
+not block the primary pass:
 
 ```bash
 if [ -n "$BASE" ]; then
@@ -458,10 +526,13 @@ Report the failed item to the user and fix it first.** Do not run any write
 call (`gh pr review`, `gh api` POST/PATCH, `gh pr edit`, `--archive`) until
 every item passes:
 
-1. Codex ran against the PR head (Phase 3), OR the sticky states the reason it
-   did not: the verbatim line "Codex second pass skipped — `codex` CLI not
-   installed", no base ref for the scope, or "Codex second pass invalid —
-   could not check out the PR head."
+1. Codex ran against the PR head (Phase 3) — the recorded `codex-head-guard:`
+   line shows `CUR` equal to `HEAD_SHA`, and the sticky's Codex line reports
+   that SHA. OR the sticky states the reason it did not run: the verbatim line
+   "Codex second pass skipped — `codex` CLI not installed", no base ref for
+   the scope, or "Codex second pass invalid — could not check out the PR
+   head." A Codex pass whose guard SHAs differ is invalid — never report it
+   as a real pass.
 2. The provenance SHAs came from the PR (`headRefOid` / `baseRefOid` or the
    merge-base), NOT a bare local `origin/<base>` tip.
 3. The `Verdict:` line matches the final `event`: Approve ↔ `APPROVE`, Request
@@ -473,10 +544,12 @@ every item passes:
 6. Every posted finding carries a severity tag, an in-diff `file:line`, a
    concrete fix, and a named failure mode. The dedup pass (Phase 1.5) ran
    against the existing threads.
-7. `sticky.md` follows the mandated template. Grep it and confirm it contains,
-   in order, the marker `<!-- pr-review:sticky -->`, `### Merge confidence:`,
-   `Reviewed head SHA:`, `Base:`, and `Verdict:`. Any anchor line missing →
-   STOP, do not post, report the missing part.
+7. `check-sticky.sh` printed `OK` for `sticky.md`. Run the validator — do not
+   eyeball the anchors:
+   ```bash
+   bash "$SKILL_DIR/check-sticky.sh" sticky.md
+   ```
+   Any `FAIL:` line → STOP, fix `sticky.md`, re-run until it prints `OK`.
 
 **The inline threads and the approve/request-changes verdict are ONE reviews
 POST, not separate calls.** A single `POST` to
@@ -563,50 +636,21 @@ and post it once.
    separate from the review above), score first, wrapped by the hidden marker
    so re-runs can find and replace it in place.
 
-   **Copy this template verbatim into `sticky.md` and fill every `<…>`. Do not
-   drop, reorder, or rename sections. Keep the marker as the first line.**
+   **Build `sticky.md` mechanically — never from memory or by retyping:**
 
-   ```markdown
-   <!-- pr-review:sticky -->
-   ### Merge confidence: <N>/10
-   <one-line assessment>
-
-   Reviewed head SHA: `<HEAD_SHA>`
-   Base: `<BASE_BRANCH>` @ `<BASE_SHA>`
-
-   Provenance note: <baseRefOid == merge-base; local origin tip NOT used>
-
-   Scope inspected: <one line>
-
-   <details open><summary>Summary</summary>
-
-   <what the PR does>
-
-   </details>
-
-   #### Critical Issues (<n>)
-   <table or "None.">
-
-   #### Warnings (<n>)
-   <table or "None.">
-
-   #### Suggestions
-   <numbered list or "None.">
-
-   #### Security
-   <assessment or "No security concerns found.">
-
-   #### PR Hygiene
-   <pass/fail table>
-
-   Adversarial validation: <distrust passes cleared; existing findings verified, not duplicated>
-
-   Codex second pass: <ran — verdict/summary | "Codex second pass skipped — codex CLI not installed" | "Codex second pass invalid — could not check out the PR head">
-
-   CI inspected on this head: <check groups + states; note acknowledged false positives>
-
-   Verdict: **<Approve | Request changes | Comment (not approved)>** — <blocking reason if any>
+   ```bash
+   # SKILL_DIR = this skill's base directory (printed when the skill loads);
+   # it falls back to ~/.claude/skills/pr-review
+   cp "$SKILL_DIR/sticky-template.md" sticky.md
+   # fill every <…> placeholder in sticky.md, then validate:
+   bash "$SKILL_DIR/check-sticky.sh" sticky.md   # must print OK
    ```
+
+   The template (`sticky-template.md`) is the single source of truth for the
+   sticky shape. Do not drop, reorder, or rename its sections. Keep the marker
+   as the first line. The validator checks the marker, every anchor and its
+   order, the score format, the verdict value, and unfilled placeholders. It
+   is FORBIDDEN to post a `sticky.md` that did not print `OK`.
 
    Fill the template from the phases:
 
@@ -633,16 +677,20 @@ and post it once.
      ```
      Both paths report the base the diff compared against; keep that meaning
      consistent.
-   - **Findings sections** — use the existing REVIEW.md / `local-review` shape,
-     each finding carrying its Phase 3 source label.
+   - **Findings sections** — fill the template's own sections only (tables
+     for Critical/Warnings, numbered list for Suggestions), each finding
+     carrying its Phase 3 source label. Do not import sections from REVIEW.md
+     or `local-review` — no "Files Reviewed" table, no extra headings.
    - **Codex second pass** — state the Phase 3 result verbatim as the template
-     shows.
+     shows. When Codex ran, include the SHA from the `codex-head-guard:` line
+     ("ran at `<sha>`") — this is what proves Codex reviewed the PR head and
+     not `main`.
    - **Adversarial validation** — what you scrutinized and cleared, plus a
      sentence that existing findings were verified and not duplicated.
 
-   When the repo defines a REVIEW.md summary shape, reuse it — but the anchor
-   lines the Pre-post gate checks (marker, `### Merge confidence:`,
-   `Reviewed head SHA:`, `Base:`, `Verdict:`) are always required.
+   Ignore any summary shape REVIEW.md defines — `sticky-template.md` is the
+   only sticky shape, and the validator rejects headings that are not in the
+   template.
 
    Post the **contents** of `sticky.md`, never its path. Update in place on
    re-run using REST end-to-end. List issue comments, pick the one whose body
@@ -683,7 +731,9 @@ There is no PR to approve or request changes on.
 ### `--dry-run`
 
 Run every phase exactly as above, but perform **no** writes: post no comments,
-submit no review, approve/request nothing, touch no labels. Instead print
+submit no review, approve/request nothing, touch no labels. `--dry-run` skips
+writes only — every phase, todo, and gate still runs, including the Codex pass
+and `cp` + `check-sticky.sh` for the sticky. Instead print
 exactly what it *would* post — the review JSON payload (event + body +
 comments[] with path/line per finding), the full sticky body, and the final
 event decision (APPROVE / REQUEST_CHANGES / COMMENT), including whether Rule 0

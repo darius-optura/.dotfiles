@@ -1,6 +1,6 @@
 ---
 name: local-review
-description: Local code reviewer that runs the same review process as the GitHub CI claude review, but against the local working tree or branch diff — without posting anything to GitHub. Reads REVIEW.md (if present in the repo) for criteria and scoring; otherwise falls back to standard criteria. Use when asked to "review my changes", "review this branch", "do a local review", or "score my diff".
+description: Use when asked to "review my changes", "review this branch", "do a local review", or "score my diff" — a read-only review of the working tree or branch diff, printed to the terminal, nothing posted to GitHub. Follow every phase in the skill body.
 ---
 
 # Local Review
@@ -12,6 +12,11 @@ analysis that prints a review to the terminal.
 
 For the post-and-fix workflow against a real PR, use `pr-review-fix` (a
 project skill) instead.
+
+On invocation, create one TodoWrite todo per phase (scope resolution, load
+criteria, review + always-flag scan, score, PR hygiene, output). Mark each
+complete only after the work is done. The always-flag scan is its own step —
+do not fold it into the general review.
 
 ## Inputs
 
@@ -27,11 +32,11 @@ Arguments can appear in any order. Parse by format, not position:
 Examples:
 
 ```text
-/pr-review                    # auto-detect: branch diff vs base, or working tree
-/pr-review main               # diff main...HEAD
-/pr-review origin/main...HEAD # explicit range
-/pr-review --staged           # just what's staged
-/pr-review --unstaged         # just unstaged edits
+/local-review                    # auto-detect: branch diff vs base, or working tree
+/local-review main               # diff main...HEAD
+/local-review origin/main...HEAD # explicit range
+/local-review --staged           # just what's staged
+/local-review --unstaged         # just unstaged edits
 ```
 
 ## Scope resolution
@@ -63,14 +68,41 @@ Always run these reads in parallel before reviewing the diff:
 2. **CLAUDE.md** — read every CLAUDE.md from the repo root down to the
    directories touched by the diff. These define project conventions
    that should inform what counts as a violation.
-3. The diff itself (`git diff <scope>` from Phase 0) plus, for each
+3. **Stack-specific checklist** — the CI Claude reviewer grades against
+   the repo's stack checklist at
+   `.claude/skills/code-review/stacks/<stack>.md`. Detect `<stack>` from
+   the changed files and load the matching file if it exists:
+   - `.svelte` / `.ts` / `.svelte.ts` touched → `svelte-typescript`
+   - otherwise look for a single file in `stacks/` whose markers match
+     the diff; if none matches, fall back to a generic checklist in the
+     same directory when one is present.
+
+   Load the matched checklist into context and apply it as an additional
+   grading rubric — its `[ ]` items and anti-patterns are first-class
+   findings, scored at the severity the checklist (or REVIEW.md) assigns.
+   This is what makes a local 9/10 line up with the CI 9/10. If the repo
+   has no `stacks/` directory, skip this step — there is no stack rubric
+   to mirror.
+4. The diff itself (`git diff <scope>` from Phase 0) plus, for each
    touched file, enough surrounding context to judge whether a flagged
    pattern is actually wrong (read the full file when it's small; read
    the relevant function/class when it's large).
 
 If REVIEW.md is absent, use the standard criteria fallback in
 "Standard criteria fallback" below. Never invent project-specific rules
-that aren't grounded in REVIEW.md, CLAUDE.md, or the visible code.
+that aren't grounded in REVIEW.md, CLAUDE.md, the stack checklist, or
+the visible code.
+
+### Review categories
+
+Regardless of which rubric applies, walk every finding through the same
+five categories the CI reviewer uses, so coverage matches:
+
+1. **Security** — XSS, injection, auth bypass, secrets exposure
+2. **Logic** — bugs, race conditions, incorrect assumptions, edge cases
+3. **Performance** — N+1 queries, unnecessary re-renders, missing indexes
+4. **Maintainability** — convention violations, dead code, unclear naming
+5. **Testing** — missing coverage for new logic, broken test assumptions
 
 ## Phase 2: Review
 
@@ -88,10 +120,10 @@ as Critical/Warning if you can name the concrete failure mode (bug,
 security flaw, regression, broken contract). If you cannot, it is at
 most a Suggestion.
 
-If REVIEW.md or CLAUDE.md lists "always flag" patterns, scan the diff
-explicitly for each one and either flag or note that none were found.
-Do not skip the always-flag scan — it is the highest-signal part of
-the review.
+If REVIEW.md, CLAUDE.md, or the stack checklist lists "always flag"
+patterns (or `[ ]` checklist items), scan the diff explicitly for each
+one and either flag or note that none were found. Do not skip the
+always-flag scan — it is the highest-signal part of the review.
 
 ### Skip
 
@@ -212,10 +244,15 @@ Start at 10, deduct as in Phase 3. Scale:
 
 - **Mirror the CI, don't replace it.** Output should be drop-in
   comparable with the GitHub sticky summary so the user can trust the
-  same scoring locally.
+  same scoring locally. The CI grades against the stack checklist +
+  REVIEW.md/CLAUDE.md + the five review categories — load the same
+  rubric so the score lines up.
 - **REVIEW.md is the source of truth.** When the repo has one, follow
   it. Don't override its severity tags, scoring, or skip list with
   the standard fallback.
+- **Load the stack checklist when one exists.** A repo with
+  `.claude/skills/code-review/stacks/<stack>.md` expects its findings
+  scored — skipping it diverges from the CI result.
 - **No side effects.** Read-only analysis. Never edit files, never
   post to GitHub, never run linters/tests.
 - **Be specific.** Every finding has a file, a line, and a concrete
