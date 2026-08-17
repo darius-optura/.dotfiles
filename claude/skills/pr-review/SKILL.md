@@ -20,6 +20,40 @@ Unlike `local-review` (read-only, terminal only), this skill has side effects
 in PR mode: it posts comments, submits a review, and adds/removes a label.
 `--dry-run` suppresses every side effect while still computing the full review.
 
+## Language
+
+All prose this skill emits obeys ASD-STE100 Simplified Technical English. This
+covers every inline thread body, every thread reply, the sticky summary, the
+terminal review in local mode, and the verdict line. The rule holds every time
+the skill runs. Do not depend on the session `tldr` mode — write in STE even
+when `tldr` is off.
+
+STE rules for every emitted sentence:
+
+- Active voice. "The handler skips the auth check." Not "The auth check is
+  skipped."
+- One instruction per sentence. Two actions become two sentences.
+- Instruction ≤ 20 words. Description ≤ 25 words.
+- Short common verbs: `use` not utilize, `fix` not remediate, `start` not
+  initiate, `make sure` not ensure, `remove` not eliminate, `find` not locate.
+- One word, one meaning; one meaning, one word. Pick one term per concept and
+  repeat it. Never vary `flag`/`option`/`switch` for style.
+- Put a warning or caution before the instruction it applies to.
+- No -ing nouns. No noun clusters over 3 words.
+- No filler, no hedging adverbs that carry no information, no idioms.
+
+Full sentences with articles. This is the `tldr` commit/PR boundary, not ultra
+fragments. Review text stays GitHub-readable and unambiguous for the author who
+acts on it. Do not drop articles and do not write fragment-salad.
+
+Keep these exact and unchanged (STE technical-name exemption): code,
+identifiers, error strings, CLI flags, file paths, `file:line` anchors,
+severity tags (`[Critical]` / `[Warning]` / `[Suggestion]` / `[Nit]`), the
+score line, the provenance header, and the `Verdict:` line.
+
+These STE rules mirror `claude/skills/tldr/SKILL.md` ("STE — ASD-STE100"
+section); keep the two in sync if either changes.
+
 ## Inputs
 
 Arguments can appear in any order. Parse by format, not position:
