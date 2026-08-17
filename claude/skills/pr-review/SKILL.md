@@ -166,6 +166,30 @@ gh api repos/{owner}/{repo}/pulls/<N>/comments --paginate
 gh pr checks <N>   # or: gh api repos/{owner}/{repo}/commits/<HEAD_SHA>/check-runs
 ```
 
+**Parse each page.** `gh api ... --paginate` concatenates one JSON array per
+page. A naive single parse breaks on the second page. Parse per page, or add
+`--slurp` and flatten the result.
+
+**GraphQL fallback for the inline comments.** The REST
+`pulls/<N>/comments` pull can return 503 or 404 while GraphQL still answers. If
+that REST call fails, fall back to a GraphQL `reviewThreads` query on the pull
+request:
+
+```bash
+gh api graphql -f query='
+{ repository(owner:"<owner>", name:"<repo>") {
+    pullRequest(number: <N>) {
+      reviewThreads(first: 100) { nodes {
+        isResolved
+        comments(first: 50) { nodes { path line body author { login } } }
+      } }
+    } } }'
+```
+
+Each thread gives its comments with `path`, `line`, `body`, and `author.login`.
+Use the GraphQL `isResolved` field as the reliable resolved-signal for a
+thread — it is more dependable than inferring resolution from REST.
+
 Use them:
 
 - **Dedup before posting (two signals).** Before opening a new thread for a
@@ -192,9 +216,15 @@ Use them:
   Critical that you reproduce counts at its real severity and moves the score.
   A bot's word alone never moves the score.
 
-- **CI state feeds the verdict.** Failing required checks on the reviewed head
-  mean this cannot be a clean approve, regardless of the diff score — note the
+- **CI state feeds the verdict.** A failing check on the reviewed head means
+  this cannot be a clean approve, regardless of the diff score — note the
   failing checks by name. State CI status in the sticky summary (Phase 5).
+
+- **Required-status is not knowable read-only.** `gh pr checks` does not expose
+  branch-protection required-status; repo-admin API access is needed to confirm
+  which checks are required. So the skill assumes a failing check is
+  merge-blocking, unless it is a known or acknowledged false positive. When the
+  skill makes this assumption, state it in the sticky.
 
 ## Phase 2 — Adversarial review (primary pass)
 
@@ -316,13 +346,43 @@ short review body, and every inline thread in a `comments[]` array. A bare
 into a second call would submit a redundant review — so build one JSON payload
 and post it once.
 
-1. **Decide the review event** from the score and authorship. This is the
-   `event` field of the single reviews POST below:
+1. **Decide the review event.** This is the `event` field of the single reviews
+   POST below. Compute it in two passes: first from the score and authorship,
+   then apply the CI gate from Phase 1.5.
+
+   Score-based event:
    - Score ≥ 9 **and** not self-authored → `APPROVE`.
    - Score ≥ 9 **and** self-authored (`gh api user -q .login` equals
      `$PR_AUTHOR`) → GitHub blocks self-approve, so use `COMMENT` here and add
      the `claude-approved` label in step 4 instead.
    - Score < 9 → `REQUEST_CHANGES`.
+
+   **CI gate — apply after the score-based event.** A failing check on the
+   reviewed head blocks a clean approve, even at score ≥ 9 (this matches Phase
+   1.5). So downgrade:
+   - A failing check that is a real defect → emit `REQUEST_CHANGES`. Name the
+     failing check in the body and the verdict.
+   - A failing check that is not a real defect (a flake or an unrelated failure
+     you cannot dismiss read-only) → do not emit `APPROVE`; emit `COMMENT`
+     instead. Name the blocking check in the body and the verdict.
+   - A failing check that is a known or acknowledged false positive → the event
+     may stay `APPROVE`, but name the check in the body with the exact text
+     "dismiss before merge".
+
+   Self-authored with a failing check: keep `COMMENT` and drop the
+   `claude-approved` label add from step 4. Name the blocking check.
+
+   **Resolve the current login with a fallback.** The self-author check needs
+   your login. `gh api user -q .login` can return 503 while GraphQL still
+   answers, so fall back:
+   ```bash
+   ME=$(gh api user -q .login 2>/dev/null \
+     || gh api graphql -f query='{viewer{login}}' -q .data.viewer.login 2>/dev/null)
+   ```
+   Last resort, if both fail: read the local `git config user.email` /
+   `git config user.name` and match against the PR author. This last resort is
+   best-effort — a mismatch between the git identity and the GitHub login can
+   make it wrong.
 
 2. **Build the inline comments.** One entry per finding, anchored to its
    `file:line`. Each entry's `path` is the file relative to repo root, `line`
@@ -382,12 +442,20 @@ and post it once.
       Reviewed head SHA: `<full head sha>`
       Base: `<base-branch>` @ `<full base sha>`
       ```
-      Resolve:
+      The provenance header must report the SHAs the reviewed diff actually
+      used. Resolve them from the PR itself, not from local refs — a local
+      `origin/<base>` tip differs from the PR's real base:
       ```bash
       HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)
       BASE=$(gh pr view <N> --json baseRefName -q .baseRefName)
-      BASE_SHA=$(git rev-parse "origin/$BASE" 2>/dev/null \
-        || gh api repos/{owner}/{repo}/git/ref/heads/"$BASE" -q .object.sha)
+      BASE_SHA=$(gh pr view <N> --json baseRefOid -q .baseRefOid)
+      ```
+      Use `git rev-parse` only in the worktree-checkout path, where the local
+      refs are the reviewed ones:
+      ```bash
+      # worktree mode only — the checked-out refs are what the diff used
+      HEAD_SHA=$(git rev-parse HEAD)
+      BASE_SHA=$(git rev-parse "origin/$BASE")
       ```
    3. One **"scope inspected"** line — what was read: the diff, changed files,
       tests, existing review threads (Phase 1.5), and CI.
