@@ -101,7 +101,12 @@ Decision tree:
      BASE=$(gh pr view --json baseRefName -q .baseRefName)
      ```
      Scope `git diff origin/$BASE...HEAD`.
-   - Else a branch/working-tree diff exists → local mode with that scope.
+   - Else a branch/working-tree diff exists → local mode with that scope. For a
+     branch or an explicit `<ref>` / `<base>...<head>` range, resolve `$BASE`
+     too, so Phase 3 can run Codex: take the range's base side when the arg is
+     a range, else `BASE=$(git merge-base HEAD origin/<default>)`. For a pure
+     working-tree scope (`--staged`, `--unstaged`, `--working`) leave `$BASE`
+     unset — there is no base branch.
    - Else nothing to review → stop and say so.
 
 State the chosen scope + mode in one line at the start, e.g.
@@ -152,6 +157,22 @@ CLAUDE.md, the stack checklist, or the visible code.
 ## Phase 1.5 — Prior review state + CI status (PR mode only)
 
 Skip this phase entirely in local mode (there is no PR to read state from).
+
+First resolve the shared identifiers once, early. Later phases reuse these:
+
+```bash
+# owner/repo as literal values — GraphQL needs them literal; REST templates {owner}/{repo}
+OWNER=$(gh repo view --json owner -q .owner.login)
+REPO=$(gh repo view --json name -q .name)
+# the reviewed head SHA — reused in Phase 5 provenance
+HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)
+# your login, with a 503 fallback — ALL self-author and own-output checks use $ME
+ME=$(gh api user -q .login 2>/dev/null \
+  || gh api graphql -f query='{viewer{login}}' -q .data.viewer.login 2>/dev/null)
+# last resort if both fail: git config user.name / user.email, matched against the
+# PR author. Best-effort only — a git identity can differ from the GitHub login.
+```
+
 In PR mode, pull the PR's existing review state and CI status **in parallel**
 before reviewing, so the pass is aware of what has already been said and what
 is already known to be broken:
@@ -162,8 +183,8 @@ gh pr view <N> --json reviews,comments
 # existing inline review comments — human and bot
 gh api repos/{owner}/{repo}/pulls/<N>/comments --paginate
 #   each: .path, .line / .original_line, .body, .user.login, .id, .in_reply_to_id
-# CI / status checks on the reviewed head SHA
-gh pr checks <N>   # or: gh api repos/{owner}/{repo}/commits/<HEAD_SHA>/check-runs
+# CI / status checks — gh pr checks needs no SHA
+gh pr checks <N>   # or: gh api repos/{owner}/{repo}/commits/"$HEAD_SHA"/check-runs
 ```
 
 **Parse each page.** `gh api ... --paginate` concatenates one JSON array per
@@ -177,18 +198,25 @@ request:
 
 ```bash
 gh api graphql -f query='
-{ repository(owner:"<owner>", name:"<repo>") {
+{ repository(owner:"'"$OWNER"'", name:"'"$REPO"'") {
     pullRequest(number: <N>) {
       reviewThreads(first: 100) { nodes {
         isResolved
-        comments(first: 50) { nodes { path line body author { login } } }
+        comments(first: 50) { nodes { databaseId path line body author { login } } }
       } }
     } } }'
 ```
 
-Each thread gives its comments with `path`, `line`, `body`, and `author.login`.
-Use the GraphQL `isResolved` field as the reliable resolved-signal for a
-thread — it is more dependable than inferring resolution from REST.
+Each thread gives its comments with `databaseId`, `path`, `line`, `body`, and
+`author.login`. Field mapping to the REST shape the dedup consumes: GraphQL
+`author.login` is REST `user.login`, and GraphQL `databaseId` is the REST
+comment `id` — pass `databaseId` as `in_reply_to_id` for a reply. Use the
+GraphQL `isResolved` field as the reliable resolved-signal for a thread — it is
+more dependable than inferring resolution from REST.
+
+If a reply-target id is still unavailable (an older GraphQL schema without
+`databaseId`), restrict the fallback to the "stay silent" dedup action — do not
+attempt a reply without a target id.
 
 Use them:
 
@@ -204,9 +232,9 @@ Use them:
   reply to the existing thread (agree / escalate / "verified, still open") via
   `in_reply_to_id`. **Filter out the skill's own prior output first** — the
   sticky (marker `<!-- pr-review:sticky -->`) and any comment whose
-  `user.login` equals `gh api user -q .login` — so it never dedups against
-  itself. Bot **SUMMARY tables** (free text, no line anchor) get the semantic
-  pass only; note that this is a weaker signal.
+  `user.login` equals `$ME` — so it never dedups against itself. Bot **SUMMARY
+  tables** (free text, no line anchor) get the semantic pass only; note that
+  this is a weaker signal.
 
 - **Distrust resolved / dismissed threads.** A resolved thread is a *claim*,
   not proof — verify the code actually fixed the issue before trusting it. An
@@ -295,11 +323,16 @@ COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts
 
 If `command -v codex` fails **or** `$COMPANION` is empty → skip Phase 3
 silently (do not mention it in the output). Otherwise run it against the same
-scope, passing `--base "$BASE"` only when `$BASE` is set; launch it in the
-background for large diffs so it does not block the primary pass:
+scope. Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0 leaves it
+unset for pure working-tree scopes); launch it in the background for large
+diffs so it does not block the primary pass:
 
 ```bash
-node "$COMPANION" adversarial-review --base "$BASE" --scope branch
+if [ -n "$BASE" ]; then
+  node "$COMPANION" adversarial-review --base "$BASE" --scope branch
+else
+  node "$COMPANION" adversarial-review --scope branch
+fi
 ```
 
 The companion emits verbose `[codex] …` progress lines while it works — ignore
@@ -347,19 +380,22 @@ into a second call would submit a redundant review — so build one JSON payload
 and post it once.
 
 1. **Decide the review event.** This is the `event` field of the single reviews
-   POST below. Compute it in two passes: first from the score and authorship,
-   then apply the CI gate from Phase 1.5.
+   POST below. Apply the rules in this order.
 
-   Score-based event:
-   - Score ≥ 9 **and** not self-authored → `APPROVE`.
-   - Score ≥ 9 **and** self-authored (`gh api user -q .login` equals
-     `$PR_AUTHOR`) → GitHub blocks self-approve, so use `COMMENT` here and add
-     the `claude-approved` label in step 4 instead.
+   **Rule 0 — self-authored overrides everything.** If `$ME` (resolved in Phase
+   1.5) equals `$PR_AUTHOR`, set `event = COMMENT` always — any score, any CI
+   state. GitHub returns 422 for BOTH `APPROVE` and `REQUEST_CHANGES` on your
+   own PR, not only approve. Put the requested changes or the approval rationale
+   in the body. Never add or expect the `claude-approved` label in the
+   self-author case. Skip the rest of the rules below.
+
+   **Rule 1 — score-based event** (not self-authored):
+   - Score ≥ 9 → `APPROVE`.
    - Score < 9 → `REQUEST_CHANGES`.
 
-   **CI gate — apply after the score-based event.** A failing check on the
-   reviewed head blocks a clean approve, even at score ≥ 9 (this matches Phase
-   1.5). So downgrade:
+   **Rule 2 — CI gate, applied after Rule 1.** A failing check on the reviewed
+   head blocks a clean approve, even at score ≥ 9 (this matches Phase 1.5). So
+   downgrade:
    - A failing check that is a real defect → emit `REQUEST_CHANGES`. Name the
      failing check in the body and the verdict.
    - A failing check that is not a real defect (a flake or an unrelated failure
@@ -368,21 +404,6 @@ and post it once.
    - A failing check that is a known or acknowledged false positive → the event
      may stay `APPROVE`, but name the check in the body with the exact text
      "dismiss before merge".
-
-   Self-authored with a failing check: keep `COMMENT` and drop the
-   `claude-approved` label add from step 4. Name the blocking check.
-
-   **Resolve the current login with a fallback.** The self-author check needs
-   your login. `gh api user -q .login` can return 503 while GraphQL still
-   answers, so fall back:
-   ```bash
-   ME=$(gh api user -q .login 2>/dev/null \
-     || gh api graphql -f query='{viewer{login}}' -q .data.viewer.login 2>/dev/null)
-   ```
-   Last resort, if both fail: read the local `git config user.email` /
-   `git config user.name` and match against the PR author. This last resort is
-   best-effort — a mismatch between the git identity and the GitHub login can
-   make it wrong.
 
 2. **Build the inline comments.** One entry per finding, anchored to its
    `file:line`. Each entry's `path` is the file relative to repo root, `line`
@@ -397,7 +418,7 @@ and post it once.
    stuck PENDING review that never posts):
 
    ```bash
-   # owner/repo/N resolved in Phase 0; EVENT decided in step 1.
+   # N from Phase 0; owner/repo from Phase 1.5; EVENT decided in step 1.
    cat > review.json <<'JSON'
    {
      "event": "REQUEST_CHANGES",
@@ -414,20 +435,22 @@ and post it once.
    Set `"event"` to the value from step 1. With an empty `comments` array this
    still submits the verdict as a plain review.
 
-4. **Labels.**
-   - `APPROVE` or the self-authored `COMMENT`-with-label case → ensure the
-     label exists, then add it tolerantly (both `|| true` so a pre-existing
-     label or a repo without label perms does not abort the run):
+4. **Labels.** Labels apply only to a non-self-authored PR. In the self-author
+   case (Rule 0) add no label and remove none — the event is `COMMENT` and the
+   body carries the rationale.
+   - `event = APPROVE` → ensure the label exists, then add it tolerantly (both
+     `|| true` so a pre-existing label or a repo without label perms does not
+     abort the run):
      ```bash
      gh label create claude-approved --color 2ea44f --description "pr-review passed" 2>/dev/null || true
      gh pr edit <N> --add-label claude-approved 2>/dev/null || true
      ```
-     For the self-authored case also add an approval comment noting the label
-     fallback (GitHub blocks self-approve).
-   - `REQUEST_CHANGES` → remove any stale approval label:
+   - `event = REQUEST_CHANGES` → remove any stale approval label:
      ```bash
      gh pr edit <N> --remove-label claude-approved 2>/dev/null || true
      ```
+   - `event = COMMENT` (not self-authored — a CI-gated downgrade) → remove any
+     stale approval label, same as `REQUEST_CHANGES`.
 
 5. **Sticky summary.** Post/update one summary comment (a PR issue comment,
    separate from the review above), **score first**, everything wrapped by the
@@ -443,20 +466,27 @@ and post it once.
       Base: `<base-branch>` @ `<full base sha>`
       ```
       The provenance header must report the SHAs the reviewed diff actually
-      used. Resolve them from the PR itself, not from local refs — a local
-      `origin/<base>` tip differs from the PR's real base:
+      used. Reuse `$HEAD_SHA` from Phase 1.5. Resolve the base from the PR
+      itself, not from a local ref — a local `origin/<base>` tip differs from
+      the PR's real base:
       ```bash
-      HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)
       BASE=$(gh pr view <N> --json baseRefName -q .baseRefName)
       BASE_SHA=$(gh pr view <N> --json baseRefOid -q .baseRefOid)
       ```
-      Use `git rev-parse` only in the worktree-checkout path, where the local
-      refs are the reviewed ones:
+      A `gh pr diff` review diffs against the merge-base, so `baseRefOid` is the
+      PR base ref tip, not the merge-base — label it as the base ref in the
+      header.
+
+      In the worktree-checkout path the local refs are the reviewed ones, and
+      the scope `origin/$BASE...HEAD` is a three-dot diff against the
+      merge-base. So report the merge-base SHA the diff actually used:
       ```bash
       # worktree mode only — the checked-out refs are what the diff used
       HEAD_SHA=$(git rev-parse HEAD)
-      BASE_SHA=$(git rev-parse "origin/$BASE")
+      BASE_SHA=$(git merge-base HEAD "origin/$BASE")
       ```
+      Both paths report the base the diff compared against; keep that meaning
+      consistent.
    3. One **"scope inspected"** line — what was read: the diff, changed files,
       tests, existing review threads (Phase 1.5), and CI.
    4. **Findings sections** in the existing REVIEW.md / `local-review` shape —
@@ -468,8 +498,15 @@ and post it once.
       "Existing review findings are resolved and were not duplicated").
    6. **CI inspected on this head** — one line listing the check groups and
       their state (all green / which are failing), from Phase 1.5.
-   7. `Verdict: **Approve**` when the score is ≥ 9, else
-      `Verdict: **Request changes**`.
+   7. **Verdict line — derive it from the FINAL `event` from step 1, not from
+      the score** (the CI gate and Rule 0 can move the event away from the
+      score):
+      - `event = APPROVE` → `Verdict: **Approve**`.
+      - `event = REQUEST_CHANGES` → `Verdict: **Request changes**`.
+      - `event = COMMENT` → `Verdict: **Comment (not approved)**`.
+
+      When a check blocks the verdict, name that check in the verdict line,
+      matching the body text from step 1.
 
    The marker sits at the very top of the body, on its own line:
 
@@ -518,9 +555,10 @@ There is no PR to approve or request changes on.
 Run every phase exactly as above, but perform **no** writes: post no comments,
 submit no review, approve/request nothing, touch no labels. Instead print
 exactly what it *would* post — the review JSON payload (event + body +
-comments[] with path/line per finding), the full sticky body, and the
-approve-vs-request-changes decision (including whether the self-author label
-fallback would trigger). Make zero `gh`/`api` write calls.
+comments[] with path/line per finding), the full sticky body, and the final
+event decision (APPROVE / REQUEST_CHANGES / COMMENT), including whether Rule 0
+(self-authored) or the CI gate moved the event off the score. Make zero
+`gh`/`api` write calls.
 
 `--dry-run` also **no-ops `--archive`.** Archiving's real destructive step is
 `supacode worktree archive`, not a `gh` call, so the "no gh writes" gate does
