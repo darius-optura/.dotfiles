@@ -131,6 +131,12 @@ Record for later phases (PR mode): `$N` (PR number), `$BASE` (base ref),
 owner/repo for API calls. In local mode there is no PR number, base ref, or
 author to record.
 
+**Prefer the provisioned worktree.** The no-worktree review path shares the
+main checkout, so a concurrent run or an auto-sync can move HEAD mid-review.
+The provisioned worktree (the Phase 0 default) isolates the review from that.
+Pin to explicit SHAs everywhere — provenance (Phase 5) and the Codex head guard
+(Phase 3) both compare and report a resolved SHA, never a moving ref name.
+
 ## Phase 1 — Load criteria
 
 Identical to `local-review`'s "Phase 1: Load criteria" — do not reinvent it.
@@ -185,6 +191,12 @@ ME=$(gh api user -q .login 2>/dev/null \
 # last resort if both fail: git config user.name / user.email, matched against the
 # PR author. Best-effort only — a git identity can differ from the GitHub login.
 ```
+
+**Retry transient failures.** GitHub REST and GraphQL can return an
+intermittent 503 or 404. Wrap the `$ME` resolution and the Phase 1.5 pulls in a
+retry-with-backoff (for example 3 attempts, 1s / 2s / 4s). When a REST call
+still fails, use the documented GraphQL fallback for that data before you treat
+the data as unavailable.
 
 In PR mode, pull the PR's existing review state and CI status **in parallel**
 before reviewing, so the pass is aware of what has already been said and what
@@ -243,11 +255,25 @@ Use them:
 
   Both signals match → do **not** open a new thread. Either stay silent or
   reply to the existing thread (agree / escalate / "verified, still open") via
-  `in_reply_to_id`. **Filter out the skill's own prior output first** — the
-  sticky (marker `<!-- pr-review:sticky -->`) and any comment whose
-  `user.login` equals `$ME` — so it never dedups against itself. Bot **SUMMARY
-  tables** (free text, no line anchor) get the semantic pass only; note that
-  this is a weaker signal.
+  `in_reply_to_id`. Bot **SUMMARY tables** (free text, no line anchor) get the
+  semantic pass only; note that this is a weaker signal.
+
+- **Your own prior output — two different rules.** Filtering your own output
+  from dedup applies to the SUMMARY sticky only, never to your own open inline
+  threads.
+  1. **Own SUMMARY sticky** (marker `<!-- pr-review:sticky -->`) → never treat
+     it as a finding. Update it in place (Phase 5, step 5). Unchanged behavior.
+  2. **Own prior INLINE threads** (author equals `$ME`) → you MUST match these,
+     so a re-run does not re-post them and spam the PR. Before opening a thread
+     for a finding, check your own open threads by (`path`, ±~5 line window,
+     same failure mode):
+     - Match found AND the issue still exists → do NOT open a new thread. Reply
+       to the existing thread via `in_reply_to_id` ("still open on this head"),
+       or stay silent.
+     - Match found AND the issue is now fixed → do NOT re-post. Optionally note
+       or resolve the thread.
+     - No own open thread for this finding → it is genuinely new; open a new
+       thread.
 
 - **Distrust resolved / dismissed threads.** A resolved thread is a *claim*,
   not proof — verify the code actually fixed the issue before trusting it. An
@@ -349,7 +375,35 @@ Phase 0). For a pure working-tree scope (`--staged`, `--unstaged`, `--working`)
 there is no base branch; state in the sticky that Codex needs a base ref and
 did not run for this scope.
 
-**Step 3 — run it.** Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0
+**Step 3 — verify HEAD is the PR head (guard, MUST run before Codex).** The
+companion diffs `merge-base(HEAD, base)..HEAD` against the currently
+checked-out HEAD. Codex MUST always review the PR head, never whatever HEAD is
+checked out. In the normal worktree path (Phase 0 provisions the PR worktree)
+HEAD is already the PR head. But a review started from another branch (for
+example `gh pr diff` from `main`) would point Codex at the WRONG code and emit
+a meaningless pass. So compare the two SHAs first:
+
+```bash
+CUR=$(git rev-parse HEAD)   # actual working-tree HEAD
+# HEAD_SHA is the PR head (headRefOid) from Phase 1.5
+```
+
+- `$CUR` equals `$HEAD_SHA` → HEAD is the PR head. Continue to Step 4.
+- `$CUR` differs from `$HEAD_SHA` → check out the PR head SHA detached before
+  Codex, then restore the prior ref afterward. This is a local, reversible git
+  operation, allowed even under `--dry-run` (it makes no GitHub write):
+  ```bash
+  PRIOR=$(git rev-parse --abbrev-ref HEAD)   # or $CUR when detached already
+  git checkout --detach "$HEAD_SHA"
+  # ... run Codex (Step 4) ...
+  git checkout "$PRIOR"
+  ```
+- Checkout is not possible (dirty tree, locked worktree) → do NOT run Codex
+  against the wrong HEAD. Mark the Codex pass invalid and state in the sticky:
+  "Codex second pass invalid — could not check out the PR head." Never treat a
+  wrong-HEAD run as a real pass.
+
+**Step 4 — run it.** Pass `--base "$BASE"` **only when `$BASE` is set** (Phase 0
 leaves it unset for pure working-tree scopes). Launch it in the background for
 large diffs so it does not block the primary pass:
 
@@ -404,8 +458,10 @@ Report the failed item to the user and fix it first.** Do not run any write
 call (`gh pr review`, `gh api` POST/PATCH, `gh pr edit`, `--archive`) until
 every item passes:
 
-1. Codex ran (Phase 3), OR the sticky states the tooling was absent with the
-   verbatim line "Codex second pass skipped — `codex` CLI not installed."
+1. Codex ran against the PR head (Phase 3), OR the sticky states the reason it
+   did not: the verbatim line "Codex second pass skipped — `codex` CLI not
+   installed", no base ref for the scope, or "Codex second pass invalid —
+   could not check out the PR head."
 2. The provenance SHAs came from the PR (`headRefOid` / `baseRefOid` or the
    merge-base), NOT a bare local `origin/<base>` tip.
 3. The `Verdict:` line matches the final `event`: Approve ↔ `APPROVE`, Request
@@ -544,9 +600,10 @@ and post it once.
       stating existing review findings were verified and not duplicated (e.g.
       "Existing review findings are resolved and were not duplicated").
    6. **Codex second pass** — one line stating the Phase 3 result: that Codex
-      ran, or the verbatim line "Codex second pass skipped — `codex` CLI not
-      installed", or that Codex needs a base ref and did not run for this scope.
-      This line is required every run.
+      ran against the PR head, or the verbatim line "Codex second pass skipped
+      — `codex` CLI not installed", or that Codex needs a base ref and did not
+      run for this scope, or "Codex second pass invalid — could not check out
+      the PR head." This line is required every run.
    7. **CI inspected on this head** — one line listing the check groups and
       their state (all green / which are failing), from Phase 1.5.
    8. **Verdict line — derive it from the FINAL `event` from step 1, not from
