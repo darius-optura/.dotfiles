@@ -16,18 +16,8 @@ err() { echo "FAIL: $1"; fail=1; }
 # 2. Required anchors, present and in template order.
 anchors=(
   "### Merge confidence: "
-  "Reviewed head SHA: "
-  "Base: "
-  "Provenance note: "
-  "Scope inspected: "
-  "#### Critical Issues"
-  "#### Warnings"
-  "#### Suggestions"
-  "#### Security"
-  "#### PR Hygiene"
-  "Adversarial validation: "
-  "Codex second pass: "
-  "CI inspected on this head: "
+  "Head \`"
+  "Codex: "
   "Verdict: "
 )
 last=0
@@ -45,35 +35,40 @@ done
 grep -qE '^### Merge confidence: ([0-9]|10)/10$' "$f" \
   || err "score line must be exactly '### Merge confidence: <0-10>/10'"
 
-# 4. Verdict must carry one of the three allowed values, bolded.
+# 4. Footer line: Head SHA and Base on one line.
+grep -qE '^Head `[0-9a-f]{7,40}` · Base `[^`]+` @ `[0-9a-f]{7,40}`$' "$f" \
+  || err "footer must be: Head \`<sha>\` · Base \`<branch>\` @ \`<sha>\`"
+
+# 4b. Codex and CI share one footer line.
+grep -qE '^Codex: .+ · CI: .+' "$f" \
+  || err "footer must be: Codex: <result> · CI: <one line>"
+
+# 5. Verdict must carry one of the three allowed values, bolded.
 grep -qE '^Verdict: \*\*(Approve|Request changes|Comment \(not approved\))\*\*' "$f" \
   || err "Verdict must be **Approve**, **Request changes**, or **Comment (not approved)**"
 
-# 5. No unfilled template placeholders may remain.
+# 6. No unfilled template placeholders may remain.
 placeholders=(
-  '<N>' '<one-line assessment>' '<HEAD_SHA>' '<BASE_BRANCH>' '<BASE_SHA>'
-  '<one line>' '<what the PR does>' '<n>' '<table or' '<numbered list or'
-  '<assessment or' '<pass/fail table>' '<distrust passes' '<ran at' 'CODEX_HEAD_SHA'
-  '<check groups' '<Approve | Request changes' '<blocking reason'
-  '<baseRefOid =='
+  '<N>' '<HEAD_SHA>' '<BASE_BRANCH>' '<BASE_SHA>' 'CODEX_HEAD_SHA'
+  '<Assessment prose' '<Findings, only when' '<One sentence' '<ran at'
+  '<one line' '<Approve | Request changes' '<blocking reason'
 )
 for p in "${placeholders[@]}"; do
   grep -qF "$p" "$f" && err "unfilled template placeholder remains: $p"
 done
 
-# 6. No headings outside the template (REVIEW.md must not reshape the sticky).
+# 7. Only the score heading is allowed — the sticky is prose, not sections.
 #    Fenced code blocks are skipped so code comments do not false-positive.
 while IFS= read -r h; do
   case "$h" in
     "### Merge confidence: "*) ;;
-    "#### Critical Issues"*) ;;
-    "#### Warnings"*) ;;
-    "#### Suggestions") ;;
-    "#### Security") ;;
-    "#### PR Hygiene") ;;
-    *) err "heading not in template: $h" ;;
+    *) err "heading not allowed (sticky is prose + footer): $h" ;;
   esac
-done < <(awk '/^```/{f=!f;next} !f && /^#{1,6} /' "$f")
+done < <(awk '/^```/{fence=!fence;next} !fence && /^#{1,6} /' "$f")
+
+# 8. Verbosity cap: the sticky is a summary, inline threads carry detail.
+lines=$(wc -l < "$f")
+[ "$lines" -le 40 ] || err "sticky is $lines lines; cap is 40 — cut boilerplate, keep one line per finding"
 
 if [ "$fail" -eq 0 ]; then
   echo "OK"

@@ -1,39 +1,13 @@
 <!-- pr-review:sticky -->
 ### Merge confidence: <N>/10
-<one-line assessment>
 
-Reviewed head SHA: `<HEAD_SHA>`
-Base: `<BASE_BRANCH>` @ `<BASE_SHA>`
+<Assessment prose, 2-5 sentences: what the PR does, what blocks or clears it. On a re-run: what changed since the last reviewed SHA and which prior findings are now fixed. No headings, no boilerplate.>
 
-Provenance note: <baseRefOid == merge-base; local origin tip NOT used>
+<Findings, only when findings exist — one line each:
+- [Warning] `file:line` — one-sentence failure mode and fix direction. (source)>
 
-Scope inspected: <one line>
+<One sentence: passes ran, prior threads verified and not re-raised. Add security or hygiene notes ONLY when something failed or deserves note.>
 
-<details open><summary>Summary</summary>
-
-<what the PR does>
-
-</details>
-
-#### Critical Issues (<n>)
-<table or "None.">
-
-#### Warnings (<n>)
-<table or "None.">
-
-#### Suggestions
-<numbered list or "None.">
-
-#### Security
-<assessment or "No security concerns found.">
-
-#### PR Hygiene
-<pass/fail table>
-
-Adversarial validation: <distrust passes cleared; existing findings verified, not duplicated>
-
-Codex second pass: <ran at `CODEX_HEAD_SHA` — verdict/summary | "Codex second pass skipped — codex CLI not installed" | "Codex second pass invalid — could not check out the PR head">
-
-CI inspected on this head: <check groups + states; note acknowledged false positives>
-
-Verdict: **<Approve | Request changes | Comment (not approved)>** — <blocking reason if any>
+Head `<HEAD_SHA>` · Base `<BASE_BRANCH>` @ `<BASE_SHA>`
+Codex: <ran at `CODEX_HEAD_SHA` — verdict | skipped — codex CLI not installed | not run — no base ref for this scope | invalid — could not check out the PR head> · CI: <one line: states + blocking checks>
+Verdict: **<Approve | Request changes | Comment (not approved)>** — <blocking reason, or "no blockers">
