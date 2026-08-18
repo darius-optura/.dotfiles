@@ -29,18 +29,20 @@ strings, flags, paths, `file:line` anchors, severity tags, score line,
 
 **Violating the letter of these rules is violating their spirit.**
 
-On invocation, create one TodoWrite todo per line below, in order. Mark a todo
-complete only after the work is done and its evidence exists. Never merge,
-reorder, or drop todos. Never start a Phase 5 write while an earlier todo is
-open.
+On invocation, create one TodoWrite todo per line below, in order. No TodoWrite
+tool in the session → print the 10 items as a markdown checklist instead, and
+print it again with its states before any Phase 5 write. Mark an item complete
+only after the work is done and its evidence exists. Never merge, reorder, or
+drop items. Never start a Phase 5 write while an earlier item is open.
 
 1. Phase 0 — mode + scope stated in one line
-2. Phase 1 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
-3. Phase 1.5 — prior threads + CI pulled (PR mode)
-4. Phase 2 — adversarial pass + all six distrust passes
-5. Phase 3 — availability check ran; command output pasted
-6. Phase 3 — Codex ran at the PR head SHA, or a verbatim skip/invalid reason
-   recorded
+2. Phase 0 — Codex launched in the background (availability output + head
+   guard pasted), or a verbatim skip reason recorded
+3. Phase 1 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
+4. Phase 1.5 — prior threads + CI pulled (PR mode)
+5. Phase 2 — adversarial pass + all six distrust passes
+6. Phase 3 — Codex result collected at the PR head SHA, or the recorded
+   reason confirmed
 7. Phase 4 — score computed on 0–10
 8. Phase 5 — sticky.md copied from template, filled, `check-sticky.sh` printed
    `OK`
@@ -54,7 +56,7 @@ pressure, "probably", or "the user is waiting".
 
 | Shortcut | Rule |
 |----------|------|
-| Skip Codex ("big diff", "hurry", "probably not installed") | Run the availability check and paste its output. Tooling present → the pass runs; background it if slow. |
+| Skip Codex ("big diff", "hurry", "probably not installed") | Run the availability check and paste its output. Tooling present → launch in the background at Phase 0, collect at Phase 3. |
 | Codex on the wrong HEAD | Codex reviews the cwd's HEAD. Run the head guard, paste the `codex-head-guard:` line. Live failure: Codex reviewed `main` on PR #3536. |
 | Freehand sticky | `cp` the template, fill it, `check-sticky.sh` must print `OK`. Memory drifts; format drift broke dedup and automation. |
 | Base SHA from a local ref | Use the PR's `baseRefOid` or the merge-base, never a bare local `origin/<base>` tip. |
@@ -98,6 +100,40 @@ Decide mode and scope, then state the choice in one line
 Prefer the provisioned worktree — the main checkout can move mid-review. Pin
 to resolved SHAs everywhere, never moving ref names.
 
+### Launch Codex now — background, before Phase 1
+
+Codex is the slowest step. Start it as soon as the scope is known, so it runs
+under Phases 1–2 instead of blocking after them.
+
+1. **Availability check — always run, paste the output:**
+   ```bash
+   command -v codex
+   COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs 2>/dev/null \
+     || ls ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | head -1)
+   ```
+2. **Decide.** Both present → launch; size and time never skip it. Either
+   absent → record `skipped — codex CLI not installed` for the sticky's Codex
+   line. No `$BASE` (pure working-tree scope) → `not run — no base ref for
+   this scope`. A silent skip is FORBIDDEN.
+3. **Head guard.** Resolve `HEAD_SHA` now (PR mode — Phase 1.5 reuses it):
+   `HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)`. The
+   companion diffs the HEAD of the directory it runs in. In that directory:
+   ```bash
+   CUR=$(git rev-parse HEAD)
+   echo "codex-head-guard: CUR=$CUR HEAD_SHA=$HEAD_SHA"
+   ```
+   Equal → launch. Different → check out `$HEAD_SHA` detached (reference.md
+   §3) and stay detached until Phase 3 collects the result — the detached SHA
+   is the code under review, so Phases 1–2 read the right tree. Checkout
+   impossible → do NOT launch; record `invalid — could not check out the PR
+   head`.
+4. **Launch in the background** from the guarded directory, output to a file
+   (reference.md §4 for flags and output shape):
+   ```bash
+   node "$COMPANION" adversarial-review --base "$BASE" --scope branch > codex-out.txt 2>&1 &
+   ```
+   Do not wait. Continue to Phase 1.
+
 ## Phase 1 — Load criteria
 
 Identical to `local-review` "Phase 1: Load criteria". Read in parallel:
@@ -137,11 +173,17 @@ included): existing reviews + issue comments, inline review comments
 
 ## Phase 2 — Adversarial review
 
-Review as a principal engineer who distrusts the author: assume the code hides
-something until it proves otherwise. Hostility lives in scrutiny, not
-severity — a Critical/Warning requires a named concrete failure mode (bug,
-security flaw, regression, broken contract); otherwise it is at most a
-Suggestion.
+**Stance.** You are a principal, platform-level engineer. Do not trust the
+author. Assume ill intent. Assume they have no idea what they are doing until
+the code proves otherwise. This PR is out to fuck your day up. Your job: make
+sure this work is rock solid, and report anything that is not. Be strict. Be
+concise. Hunt for what the author hides or got wrong, never for what is
+stylistically off.
+
+Hostility lives in scrutiny, not severity — a Critical/Warning still requires
+a named concrete failure mode (bug, security flaw, regression, broken
+contract); otherwise it is at most a Suggestion. The stance is how hard you
+dig, never an excuse to inflate.
 
 Walk the diff through the five categories (security, logic, performance,
 maintainability, testing), then run the explicit always-flag scan from Phase 1
@@ -160,39 +202,19 @@ Every finding carries: severity tag, in-diff `file:line`, concrete fix, named
 failure mode. Skip generated files, vendor code, formatting-only changes
 unless REVIEW.md says otherwise.
 
-## Phase 3 — Codex second eyes (mandatory when tooling present)
+## Phase 3 — Codex results (collect + merge)
 
-**Step 1 — availability check, always run, paste the output:**
+Codex launched in Phase 0. Collect it now: not finished after Phase 2 → wait
+here (poll the output file), never abandon it. Parse the tail — the last
+assistant-message JSON carries `verdict` and `summary`; findings precede it
+(reference.md §4). If Phase 0 detached the checkout, restore the prior ref
+after collecting. If the launch was skipped, confirm the recorded verbatim
+reason — a silent skip is FORBIDDEN. Never report a wrong-HEAD run as a real
+pass.
 
-```bash
-command -v codex
-COMPANION=$(ls ~/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs 2>/dev/null \
-  || ls ~/.claude/plugins/cache/openai-codex/codex/*/scripts/codex-companion.mjs 2>/dev/null | head -1)
-```
-
-**Step 2 — decide.** Both present → the pass runs; size and time never skip
-it. Either absent → skip, and the sticky's Codex line states
-`skipped — codex CLI not installed`. Pure working-tree scope (no `$BASE`) →
-`not run — no base ref for this scope`. A silent skip is FORBIDDEN.
-
-**Step 3 — head guard, before every Codex run.** The companion diffs the HEAD
-of the directory it runs in. In that directory:
-
-```bash
-CUR=$(git rev-parse HEAD)
-echo "codex-head-guard: CUR=$CUR HEAD_SHA=$HEAD_SHA"
-```
-
-Equal → continue. Different → check out `$HEAD_SHA` detached, restore after
-(reference.md §3; local and reversible, allowed under `--dry-run`). Checkout
-impossible → do NOT run Codex; the Codex line states
-`invalid — could not check out the PR head`. Never report a wrong-HEAD run as
-a real pass.
-
-**Step 4 — run** from the guarded directory (reference.md §4); background it
-for large diffs. Merge rules: both passes agree → high confidence, keep.
-Codex-only → verify against the code before adopting; drop if unconfirmed.
-Primary-only → keep. Label each finding `(both)` / `(primary)` / `(codex)`.
+Merge rules: both passes agree → high confidence, keep. Codex-only → verify
+against the code before adopting; drop if unconfirmed. Primary-only → keep.
+Label each finding `(both)` / `(primary)` / `(codex)`.
 
 ## Phase 4 — Score
 

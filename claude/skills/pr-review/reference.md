@@ -56,9 +56,12 @@ reversible, allowed under `--dry-run`):
 ```bash
 PRIOR=$(git rev-parse --abbrev-ref HEAD)   # or $CUR when already detached
 git checkout --detach "$HEAD_SHA"
-# ... run Codex ...
+# ... launch Codex (Phase 0), review Phases 1-2, collect result (Phase 3) ...
 git checkout "$PRIOR"
 ```
+
+Stay detached until Phase 3 collects the Codex output — the detached SHA is
+the code under review, so the primary pass reads the right tree too.
 
 ## 4. Codex invocation + output (Phase 3)
 
