@@ -88,7 +88,7 @@ PENDING review):
 cat > review.json <<'JSON'
 {
   "event": "REQUEST_CHANGES",
-  "body": "<short review body — points at the sticky + inline threads>",
+  "body": "Request changes — three unaudited callsites. Score and detail in the sticky; findings in the inline threads.",
   "comments": [
     { "path": "src/foo.ts", "line": 42, "side": "RIGHT",
       "body": "[Warning] <fix> — <named failure mode>" }

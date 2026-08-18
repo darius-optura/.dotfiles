@@ -259,7 +259,15 @@ failure → STOP, report, fix. No write call until all pass:
 ### Post
 
 Inline threads + verdict are ONE reviews POST — `event`, `body`, `comments[]`
-in a single payload (reference.md §5). Labels per event (reference.md §6):
+in a single payload (reference.md §5).
+
+**Review body: one sentence, two at most.** GitHub reviews are immutable —
+every re-run adds a new one to the timeline, so the body must not repeat the
+assessment (the sticky carries it and is updated in place). Shape:
+`<verdict rationale in one clause> — score and detail in the sticky; findings
+in the inline threads.` No findings, no summary prose, no praise paragraphs.
+
+Labels per event (reference.md §6):
 approve adds `claude-approved`, request-changes/downgrade removes it,
 self-author touches none.
 
