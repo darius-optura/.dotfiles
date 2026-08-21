@@ -12,6 +12,11 @@ default_shell = "fish"
 open_worktree = "prefix+shift+o"
 remove_worktree = "prefix+alt+d"
 
+[keys.indexed]
+# ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
+# super+k / prefix+w still opens the workspace picker popup.
+workspaces = "ctrl+shift"
+
 [theme]
 name = "catppuccin"
 auto_switch = false
