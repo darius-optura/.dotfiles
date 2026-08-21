@@ -11,6 +11,9 @@ default_shell = "fish"
 # These two are unset by default; enable so the worktree open/remove chords work.
 open_worktree = "prefix+shift+o"
 remove_worktree = "prefix+alt+d"
+# Cycle workspaces with direct vim-style chords (no prefix): h = prev, l = next.
+previous_workspace = "ctrl+shift+h"
+next_workspace = "ctrl+shift+l"
 
 [keys.indexed]
 # ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
