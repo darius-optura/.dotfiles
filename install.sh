@@ -748,7 +748,7 @@ symlink_configs() {
     done
 
     # Bin scripts
-    local bin_scripts=("tmux-sessionizer" "tmux-windowizer")
+    local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer")
 
     for script in "${bin_scripts[@]}"; do
         if [[ "$DRY_RUN" == true ]]; then

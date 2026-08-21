@@ -45,15 +45,8 @@ function hw --description 'herdr worktree: create off origin/main, bootstrap, la
         "$main/.herdr/setup.sh" $dir $branch; or return 1
     end
 
-    # 3. Layout: split root right for claude, then split that down for codex.
-    set -l right (herdr pane split --pane $root --direction right --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
-    herdr agent start claude --kind claude --pane $right
-    set -l bottom (herdr pane split --pane $right --direction down --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
-    herdr agent start codex --kind codex --pane $bottom
-
-    # nvim in the root pane; keep focus there.
-    herdr pane send-text --pane $root "nvim ."(printf '\r')
-    herdr pane focus --pane $root
+    # 3. Layout: nvim (root) + claude (top-right) + codex (bottom-right).
+    _hw_layout $root $dir
 
     echo "hw: $branch -> $dir"
 end

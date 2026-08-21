@@ -1,0 +1,37 @@
+#!/usr/bin/env fish
+
+# fzf a project directory, then open it as a herdr WORKSPACE (create or focus).
+# Mirrors bin/tmux-sessionizer but targets herdr workspaces inside the current
+# session, not separate tmux sessions. Bound to prefix+f via a herdr
+# [[keys.command]] popup.
+
+set -l config_file "$HOME/.config/tmux-sessionizer/config"
+
+set -l paths
+if test -f "$config_file"
+    while read -l line
+        test -z "$line"; and continue
+        string match -q '#*' "$line"; and continue
+        set line (string replace '~' "$HOME" "$line")
+        test -d "$line"; and set -a paths "$line"
+    end <"$config_file"
+end
+test (count $paths) -eq 0; and set paths "$HOME" "$HOME/.config" "$HOME/.dotfiles"
+
+set selected ""
+if test (count $argv) -eq 1
+    set selected $argv[1]
+else
+    set selected (find $paths -mindepth 1 -maxdepth 1 -type d 2>/dev/null | fzf)
+end
+test -z "$selected"; and exit 0
+
+set -l name (basename "$selected" | tr . _)
+
+# Focus an existing workspace with this label, else create one.
+set -l ws (herdr workspace list | jq -r --arg n "$name" '.result.workspaces[]? | select(.label == $n) | .workspace_id' | head -n1)
+if test -n "$ws" -a "$ws" != null
+    herdr workspace focus --workspace $ws
+else
+    herdr workspace create --cwd "$selected" --label "$name" --focus
+end
