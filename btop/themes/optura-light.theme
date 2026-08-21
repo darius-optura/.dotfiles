@@ -1,0 +1,65 @@
+# Optura btop theme (light)
+# Brand: https://optura.ai
+
+theme[main_bg]="#f0eee4"
+theme[main_fg]="#1a1616"
+theme[title]="#8b6914"
+theme[hi_fg]="#8b6914"
+theme[selected_bg]="#d9ecf7"
+theme[selected_fg]="#1a1616"
+theme[inactive_fg]="#a9a396"
+theme[graph_text]="#3a3732"
+theme[meter_bg]="#e8e4dc"
+theme[proc_misc]="#2a7d6a"
+
+# Box outlines
+theme[cpu_box]="#8b6914"
+theme[mem_box]="#2a7d6a"
+theme[net_box]="#202e42"
+theme[proc_box]="#420d41"
+theme[div_line]="#d6d0c2"
+
+# Temperature (cool → warm)
+theme[temp_start]="#2a7d6a"
+theme[temp_mid]="#8b6914"
+theme[temp_end]="#a33b3b"
+
+# CPU (dark teal → dark gold)
+theme[cpu_start]="#2a7d6a"
+theme[cpu_mid]="#61c2ab"
+theme[cpu_end]="#8b6914"
+
+# Free (purple → dark gold)
+theme[free_start]="#420d41"
+theme[free_mid]="#7e3d8a"
+theme[free_end]="#8b6914"
+
+# Cached (dark teal → light blue)
+theme[cached_start]="#2a7d6a"
+theme[cached_mid]="#61c2ab"
+theme[cached_end]="#d9ecf7"
+
+# Available (dark gold → red)
+theme[available_start]="#8b6914"
+theme[available_mid]="#c8595a"
+theme[available_end]="#a33b3b"
+
+# Used (dark teal → dark gold)
+theme[used_start]="#2a7d6a"
+theme[used_mid]="#61c2ab"
+theme[used_end]="#8b6914"
+
+# Download (dark teal → dark blue)
+theme[download_start]="#2a7d6a"
+theme[download_mid]="#61c2ab"
+theme[download_end]="#202e42"
+
+# Upload (purple → dark gold)
+theme[upload_start]="#420d41"
+theme[upload_mid]="#7e3d8a"
+theme[upload_end]="#8b6914"
+
+# Process (dark teal → dark gold)
+theme[process_start]="#2a7d6a"
+theme[process_mid]="#61c2ab"
+theme[process_end]="#8b6914"

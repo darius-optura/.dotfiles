@@ -1,0 +1,83 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+scan_timeout = 30
+command_timeout = 3600
+add_newline = true
+
+palette = "optura-light"
+
+[character]
+success_symbol = "[❯](dark_gold bold)"
+error_symbol   = "[❯](red bold)"
+vimcmd_symbol  = "[❮](dark_teal)"
+
+[directory]
+truncation_length = 4
+style = "dark_gold bold"
+
+[git_branch]
+style = "purple"
+symbol = " "
+
+[git_status]
+style = "dark_teal"
+
+[git_state]
+style = "dark_gold"
+
+[hostname]
+style = "dark_teal"
+
+[username]
+style_user = "dark_teal"
+style_root = "red bold"
+
+[cmd_duration]
+style = "dark_gold"
+
+[time]
+style = "neutral_500"
+
+[python]
+style = "dark_gold"
+
+[nodejs]
+style = "dark_teal"
+
+[rust]
+style = "dark_gold"
+
+[golang]
+style = "dark_teal"
+
+[docker_context]
+style = "dark_blue"
+
+[kubernetes]
+style = "purple"
+
+[palettes.optura-light]
+# Brand colors
+gold       = "#d0ae50"
+dark_gold  = "#8b6914"
+charcoal   = "#1a1616"
+off_white  = "#f0eee4"
+white      = "#ffffff"
+purple     = "#420d41"
+teal       = "#61c2ab"
+dark_teal  = "#2a7d6a"
+light_blue = "#d9ecf7"
+dark_blue  = "#202e42"
+
+# Light-variant defaults (no gold on light bg per brand)
+red    = "#a33b3b"
+yellow = "#8b6914"
+green  = "#2a7d6a"
+blue   = "#202e42"
+cyan   = "#2a7d6a"
+magenta = "#420d41"
+
+# Neutral ramp
+neutral_300 = "#d6d0c2"
+neutral_500 = "#7a756a"
+neutral_700 = "#3a3732"

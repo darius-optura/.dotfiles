@@ -79,4 +79,16 @@ return {
       -- vim.cmd("colorscheme cyberdream")
     end,
   },
+  {
+    -- Local Optura colorscheme. File lives at nvim/colors/optura.lua.
+    -- Switcher toggles vim.g.optura_variant ("dark"|"light") and the colorscheme line.
+    name = "optura",
+    dir = vim.fn.stdpath("config"),
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.g.optura_variant = "dark"
+      -- vim.cmd("colorscheme optura")
+    end,
+  },
 }

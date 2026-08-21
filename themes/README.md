@@ -8,6 +8,8 @@ Currently supported themes:
 - **Catppuccin Mocha** - Soothing pastel theme for cozy coding
 - **Rose Pine Moon** - Low-contrast theme with a subtle palette
 - **Gruvbox Dark** - Retro groove color scheme with warm tones
+- **Cyberdream** - Neon, high-contrast cyberpunk palette
+- **Optura** - Gold-led brand theme for Optura (charcoal `#1a1616` / off-white `#f0eee4` / gold `#d0ae50` / teal `#61c2ab` / purple `#420d41`). Source: [Optura Design System](https://optura.ai). Both `dark` and `light` variants ship with full coverage of ghostty, fish, tmux, starship, bat (custom `.tmTheme`), btop, and a single-file neovim colorscheme at `nvim/colors/optura.lua`. Font (Berkeley Mono) is untouched.
 
 ## Switching Themes
 
@@ -17,6 +19,9 @@ To switch themes, use the Makefile command:
 make theme THEME=catppuccin
 make theme THEME=rose-pine
 make theme THEME=gruvbox
+make theme THEME=cyberdream
+make theme THEME=optura            # dark by default
+make theme THEME=optura VARIANT=light
 ```
 
 Or run the script directly:
@@ -40,6 +45,7 @@ When you switch themes, the following configurations are updated:
 7. **Starship** - Prompt color palette
 8. **FZF** - Fuzzy finder colors (automatically via Fish function)
 9. **Neovim** - Editor colorscheme (automatically via sed)
+10. **Claude Code** - Sets `theme` in `~/.claude.json` to `dark-ansi` / `light-ansi` so the CLI inherits the terminal ANSI palette (no custom Claude theme system exists; the Optura ghostty palette drives Claude's colors)
 
 ## Adding a New Theme
 

@@ -25,29 +25,30 @@ even when session `tldr` mode is off. Keep exact: code, identifiers, error
 strings, flags, paths, `file:line` anchors, severity tags, score line,
 `Verdict:` line.
 
-## Execution contract — FIRST, before Phase 0
+## Execution contract — FIRST, before Phase 1
 
 **Violating the letter of these rules is violating their spirit.**
 
 On invocation, create one TodoWrite todo per line below, in order. No TodoWrite
-tool in the session → print the 10 items as a markdown checklist instead, and
-print it again with its states before any Phase 5 write. Mark an item complete
+tool in the session → print the 11 items as a markdown checklist instead, and
+print it again with its states before any Phase 8 write. Mark an item complete
 only after the work is done and its evidence exists. Never merge, reorder, or
-drop items. Never start a Phase 5 write while an earlier item is open.
+drop items. Never start a Phase 8 write while an earlier item is open.
 
-1. Phase 0 — mode + scope stated in one line
-2. Phase 0 — Codex launched in the background (availability output + head
+1. Phase 1 — mode + scope stated in one line
+2. Phase 2 — Codex launched in the background (availability output + head
    guard pasted), or a verbatim skip reason recorded
-3. Phase 1 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
-4. Phase 1.5 — prior threads + CI pulled (PR mode)
-5. Phase 2 — adversarial pass + all six distrust passes
-6. Phase 3 — Codex result collected at the PR head SHA, or the recorded
+3. Phase 3 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
+4. Phase 4 — prior threads + CI pulled (PR mode)
+5. Phase 5 — adversarial pass + all six distrust passes
+6. Phase 6 — Codex result collected at the PR head SHA, or the recorded
    reason confirmed
-7. Phase 4 — score computed on 0–10
-8. Phase 5 — sticky.md copied from template, filled, `check-sticky.sh` printed
+7. Phase 7 — score computed on 0–10
+8. Phase 8 — sticky.md copied from template, filled, `check-sticky.sh` printed
    `OK`
-9. Phase 5 — pre-post gate: every item confirmed by running its command
-10. Phase 5 — post (or `--dry-run` print)
+9. Phase 8 — pre-post gate: every item confirmed by running its command
+10. Phase 8 — user confirmed the post
+11. Phase 8 — post (or `--dry-run` print)
 
 ## Non-negotiables
 
@@ -56,11 +57,12 @@ pressure, "probably", or "the user is waiting".
 
 | Shortcut | Rule |
 |----------|------|
-| Skip Codex ("big diff", "hurry", "probably not installed") | Run the availability check and paste its output. Tooling present → launch in the background at Phase 0, collect at Phase 3. |
+| Skip Codex ("big diff", "hurry", "probably not installed") | Run the availability check and paste its output. Tooling present → launch in the background at Phase 2, collect at Phase 6. |
 | Codex on the wrong HEAD | Codex reviews the cwd's HEAD. Run the head guard, paste the `codex-head-guard:` line. Live failure: Codex reviewed `main` on PR #3536. |
 | Freehand sticky | `cp` the template, fill it, `check-sticky.sh` must print `OK`. Memory drifts; format drift broke dedup and automation. |
 | Base SHA from a local ref | Use the PR's `baseRefOid` or the merge-base, never a bare local `origin/<base>` tip. |
-| Post before the gate | Every Phase 5 gate item passes first, confirmed by running its command — not by judging it "obviously fine". |
+| Post before the gate | Every Phase 8 gate item passes first, confirmed by running its command — not by judging it "obviously fine". |
+| Post without user confirmation | Ask the user before any PR write. No question tool in the session → print the payloads and stop; do not post. |
 | Finding without a failure mode | Name the concrete failure or downgrade to Suggestion. |
 | Dedup against own output | Own sticky (marker) is never a finding — update it. Own open inline threads must be matched so re-runs do not re-post them. |
 | REVIEW.md reshapes output or process | REVIEW.md governs criteria only: severity, always-flag, scoring, skip list. This skill owns process and output. Always review the full PR diff. `sticky-template.md` is the only sticky shape — no "Files Reviewed" tables, no emoji verdicts, no imported formats, even when REVIEW.md says "required". |
@@ -80,7 +82,7 @@ Parse by format, not position:
   as the final operation. No-op in local mode.
 - `--dry-run` — full review, zero writes, print what would post.
 
-## Phase 0 — Context
+## Phase 1 — Context
 
 Decide mode and scope, then state the choice in one line
 (e.g. `PR mode: PR #1234, git diff origin/main...HEAD (24 files, +812/-130)`).
@@ -100,10 +102,10 @@ Decide mode and scope, then state the choice in one line
 Prefer the provisioned worktree — the main checkout can move mid-review. Pin
 to resolved SHAs everywhere, never moving ref names.
 
-### Launch Codex now — background, before Phase 1
+## Phase 2 — Launch Codex (background)
 
 Codex is the slowest step. Start it as soon as the scope is known, so it runs
-under Phases 1–2 instead of blocking after them.
+under Phases 3–5 instead of blocking after them.
 
 1. **Availability check — always run, paste the output:**
    ```bash
@@ -115,7 +117,7 @@ under Phases 1–2 instead of blocking after them.
    absent → record `skipped — codex CLI not installed` for the sticky's Codex
    line. No `$BASE` (pure working-tree scope) → `not run — no base ref for
    this scope`. A silent skip is FORBIDDEN.
-3. **Head guard.** Resolve `HEAD_SHA` now (PR mode — Phase 1.5 reuses it):
+3. **Head guard.** Resolve `HEAD_SHA` now (PR mode — Phase 4 reuses it):
    `HEAD_SHA=$(gh pr view <N> --json headRefOid -q .headRefOid)`. The
    companion diffs the HEAD of the directory it runs in. In that directory:
    ```bash
@@ -123,8 +125,8 @@ under Phases 1–2 instead of blocking after them.
    echo "codex-head-guard: CUR=$CUR HEAD_SHA=$HEAD_SHA"
    ```
    Equal → launch. Different → check out `$HEAD_SHA` detached (reference.md
-   §3) and stay detached until Phase 3 collects the result — the detached SHA
-   is the code under review, so Phases 1–2 read the right tree. Checkout
+   §3) and stay detached until Phase 6 collects the result — the detached SHA
+   is the code under review, so Phases 3–5 read the right tree. Checkout
    impossible → do NOT launch; record `invalid — could not check out the PR
    head`.
 4. **Launch in the background** from the guarded directory, output to a file
@@ -132,9 +134,9 @@ under Phases 1–2 instead of blocking after them.
    ```bash
    node "$COMPANION" adversarial-review --base "$BASE" --scope branch > codex-out.txt 2>&1 &
    ```
-   Do not wait. Continue to Phase 1.
+   Do not wait. Continue to Phase 3.
 
-## Phase 1 — Load criteria
+## Phase 3 — Load criteria
 
 Identical to `local-review` "Phase 1: Load criteria". Read in parallel:
 REVIEW.md, the CLAUDE.md chain, the stack checklist
@@ -147,7 +149,7 @@ output (see Non-negotiables). REVIEW.md absent → `local-review` "Standard
 criteria fallback" and its "Always flag" list. Never invent rules not grounded
 in REVIEW.md, CLAUDE.md, the stack checklist, or the visible code.
 
-## Phase 1.5 — Prior review state + CI (PR mode only)
+## Phase 4 — Prior review state + CI (PR mode only)
 
 Resolve `OWNER`, `REPO`, `HEAD_SHA`, `ME` once (reference.md §1 — retry
 transient failures). Pull in parallel (reference.md §2, GraphQL fallback
@@ -171,7 +173,7 @@ included): existing reviews + issue comments, inline review comments
   check is merge-blocking unless it is a known false positive, and state the
   assumption in the sticky.
 
-## Phase 2 — Adversarial review
+## Phase 5 — Adversarial review
 
 **Stance.** You are a principal, platform-level engineer. Do not trust the
 author. Assume ill intent. Assume they have no idea what they are doing until
@@ -186,7 +188,7 @@ contract); otherwise it is at most a Suggestion. The stance is how hard you
 dig, never an excuse to inflate.
 
 Walk the diff through the five categories (security, logic, performance,
-maintainability, testing), then run the explicit always-flag scan from Phase 1
+maintainability, testing), then run the explicit always-flag scan from Phase 3
 — flag or record "none found" per rule. Then the six distrust passes, every
 one, every time, stating what you checked:
 
@@ -202,12 +204,12 @@ Every finding carries: severity tag, in-diff `file:line`, concrete fix, named
 failure mode. Skip generated files, vendor code, formatting-only changes
 unless REVIEW.md says otherwise.
 
-## Phase 3 — Codex results (collect + merge)
+## Phase 6 — Codex results (collect + merge)
 
-Codex launched in Phase 0. Collect it now: not finished after Phase 2 → wait
+Codex launched in Phase 2. Collect it now: not finished after Phase 5 → wait
 here (poll the output file), never abandon it. Parse the tail — the last
 assistant-message JSON carries `verdict` and `summary`; findings precede it
-(reference.md §4). If Phase 0 detached the checkout, restore the prior ref
+(reference.md §4). If Phase 2 detached the checkout, restore the prior ref
 after collecting. If the launch was skipped, confirm the recorded verbatim
 reason — a silent skip is FORBIDDEN. Never report a wrong-HEAD run as a real
 pass.
@@ -216,13 +218,13 @@ Merge rules: both passes agree → high confidence, keep. Codex-only → verify
 against the code before adopting; drop if unconfirmed. Primary-only → keep.
 Label each finding `(both)` / `(primary)` / `(codex)`.
 
-## Phase 4 — Score
+## Phase 7 — Score
 
 REVIEW.md rubric when present, else the `local-review` fallback: start at 10;
 Critical −3..−5, Warning −1..−2, missing tests −1; floor 1. Non-0–10 rubric →
 normalize to 0–10 before comparing. Approve threshold is 9. Score honestly.
 
-## Phase 5 — Output and side effects
+## Phase 8 — Output and side effects
 
 ### Pre-post gate (PR mode — run before any write)
 
@@ -255,6 +257,23 @@ failure → STOP, report, fix. No write call until all pass:
   `REQUEST_CHANGES`. Failing check you cannot dismiss (flake/unrelated) → no
   approve; `COMMENT`, name the check. Acknowledged false positive → APPROVE
   may stand; name the check with "dismiss before merge".
+
+### Confirm with the user (PR mode — after the gate, before any write)
+
+Ask the user before you post. Use AskUserQuestion with: the event, the score,
+the finding count, and the full sticky body visible (preview or preceding
+message). Options: post / edit first / abort.
+
+- **Post** → continue to Post below.
+- **Edit** → apply the requested change, re-run `check-sticky.sh` and any
+  affected gate item, ask again.
+- **Abort** → stop; write nothing; report the computed verdict to the
+  terminal.
+- **No question tool in the session** → print the review payload and the
+  sticky body, then STOP. Do not post. The user replies with "post" to
+  continue.
+
+Local mode and `--dry-run` skip this step — they write nothing.
 
 ### Post
 
@@ -313,9 +332,9 @@ labels, no edits.
 ### `--dry-run`
 
 Every phase, todo, and gate runs — including Codex and the sticky
-cp + validate. Zero writes. Print the review JSON payload, the sticky body,
-and the final event (noting if Rule 0 or the CI gate moved it). `--archive` is
-also skipped — print that it would archive.
+cp + validate. Zero writes, no confirmation prompt. Print the review JSON
+payload, the sticky body, and the final event (noting if Rule 0 or the CI gate
+moved it). `--archive` is also skipped — print that it would archive.
 
 ### `--archive`
 

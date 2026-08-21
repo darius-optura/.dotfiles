@@ -86,7 +86,7 @@ restore: ## Restore from latest backup
 uninstall: ## Remove installed packages and symlinks (interactive)
 	@bash install.sh --uninstall
 
-theme: ## Switch theme (Usage: make theme THEME=catppuccin VARIANT=dark|light)
+theme: ## Switch theme (Usage: make theme THEME=catppuccin|rose-pine|gruvbox|cyberdream|optura VARIANT=dark|light)
 	@if [ ! -f "scripts/switch-theme.sh" ]; then \
 		echo "✗ Theme switcher not found. Please ensure scripts/switch-theme.sh exists"; \
 		exit 1; \

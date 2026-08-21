@@ -1,0 +1,65 @@
+# Optura btop theme (dark)
+# Brand: https://optura.ai
+
+theme[main_bg]="#1a1616"
+theme[main_fg]="#f0eee4"
+theme[title]="#d0ae50"
+theme[hi_fg]="#d0ae50"
+theme[selected_bg]="#420d41"
+theme[selected_fg]="#f0eee4"
+theme[inactive_fg]="#7a756a"
+theme[graph_text]="#d6d0c2"
+theme[meter_bg]="#262320"
+theme[proc_misc]="#61c2ab"
+
+# Box outlines
+theme[cpu_box]="#d0ae50"
+theme[mem_box]="#61c2ab"
+theme[net_box]="#202e42"
+theme[proc_box]="#420d41"
+theme[div_line]="#332d2b"
+
+# Temperature gradient (cool → warm)
+theme[temp_start]="#2a7d6a"
+theme[temp_mid]="#d0ae50"
+theme[temp_end]="#a33b3b"
+
+# CPU graph gradient (teal → gold)
+theme[cpu_start]="#2a7d6a"
+theme[cpu_mid]="#61c2ab"
+theme[cpu_end]="#d0ae50"
+
+# Free meter (purple → gold)
+theme[free_start]="#420d41"
+theme[free_mid]="#7e3d8a"
+theme[free_end]="#d0ae50"
+
+# Cached meter (teal → blue)
+theme[cached_start]="#2a7d6a"
+theme[cached_mid]="#61c2ab"
+theme[cached_end]="#d9ecf7"
+
+# Available meter (gold → red)
+theme[available_start]="#d0ae50"
+theme[available_mid]="#c8595a"
+theme[available_end]="#a33b3b"
+
+# Used meter (teal → gold)
+theme[used_start]="#2a7d6a"
+theme[used_mid]="#61c2ab"
+theme[used_end]="#d0ae50"
+
+# Download (teal → light blue)
+theme[download_start]="#2a7d6a"
+theme[download_mid]="#61c2ab"
+theme[download_end]="#d9ecf7"
+
+# Upload (purple → gold)
+theme[upload_start]="#420d41"
+theme[upload_mid]="#7e3d8a"
+theme[upload_end]="#d0ae50"
+
+# Process gradient (dark teal → gold)
+theme[process_start]="#2a7d6a"
+theme[process_mid]="#61c2ab"
+theme[process_end]="#d0ae50"

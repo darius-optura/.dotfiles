@@ -71,6 +71,8 @@ process.stdin.on('end', () => {
           hookEventName: "UserPromptSubmit",
           additionalContext: "TLDR MODE ACTIVE (" + activeMode + "). " +
             "Drop articles/filler/pleasantries/hedging. Fragments OK. " +
+            "Write in ASD-STE100 Simplified Technical English: one word one meaning, " +
+            "short common verbs, active voice, one instruction per sentence, max 20 words. " +
             "Code/commits/security: write normal."
         }
       }));

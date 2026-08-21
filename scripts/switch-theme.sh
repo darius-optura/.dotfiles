@@ -40,9 +40,12 @@ normalize_theme() {
         cyberdream|cyber)
             echo "cyberdream"
             ;;
+        optura|opt)
+            echo "optura"
+            ;;
         *)
             print_error "Unknown theme: $1"
-            echo "Available themes: catppuccin, rose-pine, gruvbox, cyberdream"
+            echo "Available themes: catppuccin, rose-pine, gruvbox, cyberdream, optura"
             exit 1
             ;;
     esac
@@ -97,6 +100,13 @@ update_fish_theme() {
                 theme_file="cyberdream"
             fi
             ;;
+        optura)
+            if [[ "$VARIANT" == "light" ]]; then
+                theme_file="optura-light"
+            else
+                theme_file="optura"
+            fi
+            ;;
     esac
 
     if [[ -f "$CONFIG_DIR/fish/themes/$theme_file.theme" ]]; then
@@ -137,6 +147,13 @@ update_ghostty_theme() {
                 theme_conf="cyberdream-light"
             else
                 theme_conf="cyberdream"
+            fi
+            ;;
+        optura)
+            if [[ "$VARIANT" == "light" ]]; then
+                theme_conf="optura-light"
+            else
+                theme_conf="optura"
             fi
             ;;
     esac
@@ -188,6 +205,13 @@ update_tmux_theme() {
                 theme_file="cyberdream.conf"
             fi
             ;;
+        optura)
+            if [[ "$VARIANT" == "light" ]]; then
+                theme_file="optura-light.conf"
+            else
+                theme_file="optura.conf"
+            fi
+            ;;
     esac
 
     if [[ -f "$CONFIG_DIR/tmux/tmux.conf" ]]; then
@@ -232,6 +256,17 @@ update_bat_theme() {
                 print_info "Cyberdream light not available for bat, using Catppuccin Latte"
             else
                 bat_theme="cyberdream"
+            fi
+            ;;
+        optura)
+            if [[ "$VARIANT" == "light" ]]; then
+                bat_theme="optura-light"
+            else
+                bat_theme="optura"
+            fi
+            # Ensure bat sees the new tmTheme files in its cache
+            if command -v bat >/dev/null 2>&1; then
+                bat cache --build >/dev/null 2>&1 || true
             fi
             ;;
     esac
@@ -287,6 +322,9 @@ update_neovim_theme() {
         cyberdream)
             colorscheme="cyberdream"
             ;;
+        optura)
+            colorscheme="optura"
+            ;;
     esac
 
     if [[ ! -f "$colorscheme_file" ]]; then
@@ -331,6 +369,13 @@ update_neovim_theme() {
                 sed -i.bak '/variant = "light",/d' "$colorscheme_file"
             fi
             ;;
+        optura)
+            if [[ "$VARIANT" == "light" ]]; then
+                sed -i.bak 's/vim\.g\.optura_variant = "dark"/vim.g.optura_variant = "light"/g' "$colorscheme_file"
+            else
+                sed -i.bak 's/vim\.g\.optura_variant = "light"/vim.g.optura_variant = "dark"/g' "$colorscheme_file"
+            fi
+            ;;
     esac
 
     # First, comment out all vim.cmd("colorscheme ...") lines
@@ -349,6 +394,9 @@ update_neovim_theme() {
             ;;
         cyberdream)
             sed -i.bak 's/^[[:space:]]*-- vim\.cmd("colorscheme cyberdream")/      vim.cmd("colorscheme cyberdream")/g' "$colorscheme_file"
+            ;;
+        optura)
+            sed -i.bak 's/^[[:space:]]*-- vim\.cmd("colorscheme optura")/      vim.cmd("colorscheme optura")/g' "$colorscheme_file"
             ;;
     esac
 
@@ -402,6 +450,40 @@ update_opencode_theme() {
     fi
 }
 
+# Update Claude Code theme
+# Claude Code has no custom theme system — only built-in names. The `-ansi`
+# variants inherit the terminal's ANSI palette, so any of our terminal themes
+# (catppuccin, optura, etc.) become the Claude Code palette automatically.
+update_claude_theme() {
+    local claude_config="$HOME/.claude.json"
+
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq not found — skipping Claude Code theme"
+        return
+    fi
+
+    if [[ ! -f "$claude_config" ]]; then
+        return
+    fi
+
+    local claude_theme
+    if [[ "$VARIANT" == "light" ]]; then
+        claude_theme="light-ansi"
+    else
+        claude_theme="dark-ansi"
+    fi
+
+    local tmp
+    tmp=$(mktemp)
+    if jq --arg t "$claude_theme" '.theme = $t' "$claude_config" > "$tmp"; then
+        mv "$tmp" "$claude_config"
+        print_success "Claude Code theme updated to $claude_theme"
+    else
+        rm -f "$tmp"
+        print_error "Failed to update Claude Code theme"
+    fi
+}
+
 # Save theme preference
 save_theme_preference() {
     echo "$THEME $VARIANT" > "$HOME/.config/dotfiles-theme"
@@ -430,6 +512,7 @@ main() {
     update_fzf_theme
     update_neovim_theme
     update_opencode_theme
+    update_claude_theme
     save_theme_preference
 
     echo ""

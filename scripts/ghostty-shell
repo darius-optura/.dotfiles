@@ -1,0 +1,11 @@
+#!/bin/sh
+# Launched by Ghostty's `command =`. Both Ghostty.app and Supacode embed
+# libghostty and read the same ~/.config/ghostty/config, so branch by host:
+#   Supacode -> fish, no tmux (Supacode manages its own tabs/panes)
+#   Ghostty  -> fish + tmux (default session)
+# SUPACODE_SOCKET_PATH is set in Supacode terminals, unset in plain Ghostty.
+if [ -n "$SUPACODE_SOCKET_PATH" ]; then
+    exec /usr/local/bin/fish
+else
+    exec /usr/local/bin/fish --login -c "tmux attach -t default || tmux new -s default"
+fi

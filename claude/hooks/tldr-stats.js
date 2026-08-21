@@ -250,6 +250,14 @@ function main() {
   const all = args.includes('--all');
   const sinceIdx = args.indexOf('--since');
   const sinceArg = sinceIdx !== -1 ? args[sinceIdx + 1] : null;
+  // --refresh: Stop-hook mode. Reads transcript_path from stdin JSON, updates the
+  // statusline cache, prints nothing.
+  const refresh = args.includes('--refresh');
+  let hookSession = null;
+  if (refresh) {
+    try { hookSession = JSON.parse(fs.readFileSync(0, 'utf8')).transcript_path || null; }
+    catch (e) { /* fall back to findRecentSession */ }
+  }
 
   const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
   const historyPath = path.join(claudeDir, '.tldr-history.jsonl');
@@ -265,9 +273,10 @@ function main() {
     return;
   }
 
-  const sessionFile = sessionFileArg || findRecentSession(claudeDir);
+  const sessionFile = sessionFileArg || hookSession || findRecentSession(claudeDir);
 
   if (!sessionFile) {
+    if (refresh) return;
     process.stderr.write('tldr-stats: no Claude Code session found.\n');
     process.exit(1);
   }
@@ -292,6 +301,8 @@ function main() {
     const suffix = agg.estSavedTokens > 0 ? `⛏ ${humanizeTokens(agg.estSavedTokens)}` : '';
     safeWriteFlag(path.join(claudeDir, '.tldr-statusline-suffix'), suffix);
   }
+
+  if (refresh) return;
 
   if (share) {
     process.stdout.write(formatShare({ ...parsed, mode }) + '\n');

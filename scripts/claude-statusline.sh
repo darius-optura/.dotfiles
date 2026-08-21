@@ -145,11 +145,11 @@ if [ -n "$wt_name" ]; then
   parts+=("${BLUE}⎇ ${wt_name}${RESET}")
 fi
 
-# ── caveman badge ────────────────────────────────────────────────────────────
+# ── tldr badge ───────────────────────────────────────────────────────────────
 
-caveman_badge=$(bash "${HOME}/.claude/hooks/caveman-statusline.sh" 2>/dev/null)
-if [ -n "$caveman_badge" ]; then
-  parts+=("$caveman_badge")
+tldr_badge=$(bash "${HOME}/.claude/hooks/tldr-statusline.sh" 2>/dev/null)
+if [ -n "$tldr_badge" ]; then
+  parts+=("$tldr_badge")
 fi
 
 # ── assemble ─────────────────────────────────────────────────────────────────
