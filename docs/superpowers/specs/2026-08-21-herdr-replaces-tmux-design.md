@@ -133,11 +133,52 @@ herdr owns worktree create and remove. The logic moves into the intent repo's
 
 ### 5. Keybindings — `ghostty/config`
 
-Ghostty `super+*` keys already send the prefix `ctrl+b`. herdr's default prefix
-is also `ctrl+b`, so split and tab navigation whose letters match tmux keeps
-working. A follow-up pass remaps the herdr command letters that differ and adds
-the worktree keys (`super+shift+g` create, `super+shift+o` open,
-`super+alt+d` remove). This pass runs after the core swap works, not before.
+herdr stays at its default keybindings (approach A). The reconcile happens only
+in `ghostty/config`, the file the user already curates. So `herdr config
+reset-keys` and the herdr doc examples stay valid, and no herdr config carries
+custom binds.
+
+herdr's default prefix is `ctrl+b`, the same as tmux, so "prefix then letter"
+muscle memory holds. These `super+*` keys already send the letter herdr uses and
+need no change: new tab `c`, next/prev tab `n`/`p`, select tab `1..9`, close pane
+`x`, zoom `z`.
+
+Change these `super+*` bindings to send herdr's native letter:
+
+| super key | sends today | change to | herdr action |
+| --- | --- | --- | --- |
+| `super+shift+n` | `prefix+%` | `prefix+minus` | `split_horizontal` |
+| `super+n` | `prefix+"` | `prefix+v` | `split_vertical` |
+| `super+up/down/left/right` | `prefix+arrow` | `prefix+k/j/h/l` | `focus_pane_*` |
+
+Remove the `super+shift+i` and `super+shift+u` binds. They send `prefix+I` /
+`prefix+U` for tpm (tmux plugin manager); herdr has no plugin manager, so the
+keys are dead.
+
+Add worktree keys, matched to herdr's defaults: `super+shift+g` →
+`prefix+shift+g` (create), `super+shift+o` → `prefix+shift+o` (open),
+`super+alt+d` → `prefix+alt+d` (remove).
+
+Confirm on the binary and then fix to match: herdr's copy-mode key (today
+`super+[` → `prefix+[`), reload key (today `super+r` → `prefix+r`), and
+session-list key (today `super+k` → `prefix+s`).
+
+This pass runs after the core swap works, not before.
+
+### 5b. tmux-sessionizer
+
+Today `tmux/conf/keybindings.conf` binds `prefix+f` to run
+`~/.local/bin/tmux-sessionizer`, and `super+f` sends `prefix+f`. The script calls
+the `tmux` CLI, so it stops working after the swap.
+
+The script fuzzy-finds a project root and jumps to a session for it. That is a
+whole-repo switch, not a branch switch, so it does not overlap the worktree
+workspaces. Decision by verify gate:
+
+- herdr exposes attach-a-session-by-name → rewrite the script to call `herdr`
+  in place of `tmux`, and point `super+f` at it. Keep the fzf front end.
+- herdr does not → drop the script and use herdr's own session or worktree
+  picker.
 
 ### 6. Decommission tmux
 
@@ -182,7 +223,10 @@ before any config or script edit:
    `setup.sh` keeps the branch parsing.
 6. Whether the workspace layout is core config or needs a plugin.
 7. The attach / new-session subcommand for `ghostty-shell`.
-8. The prefix and worktree keybinding names.
+8. The prefix and worktree keybinding names, plus the copy-mode, reload, and
+   session-list key names (unit 5).
+9. Whether herdr can attach a session by name from the CLI. Decides the
+   tmux-sessionizer rewrite vs drop (unit 5b).
 
 Findings feed the plan. The plan does not assume any uncertain key.
 
