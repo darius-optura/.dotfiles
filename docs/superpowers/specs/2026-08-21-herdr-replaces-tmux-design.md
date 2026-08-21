@@ -3,6 +3,27 @@
 Date: 2026-08-21
 Status: Approved design, ready for implementation plan
 
+## Revision 2026-08-21 — pivot to a scripted wrapper
+
+The verify gate (now run against herdr 0.8.2) found that herdr core has **no**
+`worktree.created`/`removed` lifecycle hooks and **no** declarative pane layout.
+See `docs/superpowers/plans/verify-gate-findings.md`. Approach A is therefore
+impossible.
+
+herdr does expose the pieces to script the flow: `herdr worktree create
+--path/--branch/--base`, `herdr pane split`, and `herdr agent start <name>
+--kind claude|codex --pane <id>`, plus named sessions (`herdr --session`).
+
+**New mechanism:** a `hw` fish wrapper owns the flow — create the worktree
+in-repo via `--path`, run `.herdr/setup.sh`, then split panes and start the
+agents through the herdr socket API. `hw-rm` runs `.herdr/teardown.sh` then
+`herdr worktree remove`. The generic hook dispatcher is dropped (no hooks to
+dispatch). `.herdr/setup.sh` and `.herdr/teardown.sh` stay, called by the
+wrapper instead of a hook. Everything else in this spec (full swap, in-repo
+worktrees, terminal-only, claude+codex, keybind reconcile, tmux dormancy) stands.
+Sections below that describe config hooks and declarative layout are superseded
+by this revision.
+
 ## Goal
 
 Move the primary workflow back to Ghostty and replace tmux with

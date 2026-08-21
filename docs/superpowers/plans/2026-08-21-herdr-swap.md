@@ -1,174 +1,62 @@
-# herdr Replaces tmux — Implementation Plan
+# herdr Replaces tmux — Implementation Plan (rev. scripted wrapper)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace tmux with herdr as the multiplexer Ghostty launches, with herdr owning git worktree create and remove and running `claude` + `codex` + `nvim` in each worktree.
+**Goal:** Replace tmux with herdr as the multiplexer Ghostty launches, with a `hw` fish wrapper that creates a git worktree in-repo, bootstraps it, and lays out `claude` + `codex` + `nvim` through herdr's socket API. `hw-rm` tears it down.
 
-**Architecture:** Ghostty launches herdr through `scripts/ghostty-shell`. herdr config lives in dotfiles. Generic dotfiles hooks call a repo-owned `.herdr/setup.sh` on worktree create and `.herdr/teardown.sh` on remove, so no repo detail leaks into dotfiles. The intent repo gets those two scripts, ported from the current `.zed/worktree-setup.sh` and `wtrm.fish`. Keybindings reconcile only in `ghostty/config`; herdr stays at its defaults.
+**Architecture:** herdr 0.8.2 has no lifecycle hooks and no declarative layout (see `verify-gate-findings.md`), so a wrapper owns orchestration. Ghostty launches `herdr --session default` via `scripts/ghostty-shell`. `hw`/`hw-rm` fish functions call `herdr worktree create/remove`, run repo-owned `.herdr/setup.sh`/`teardown.sh`, and drive `herdr pane split` + `herdr agent start`. Keybindings reconcile only in `ghostty/config`; herdr keeps its defaults.
 
-**Tech Stack:** herdr (Rust binary), fish, Ghostty, git worktrees, Node/npm (intent bootstrap), TOML config.
+**Tech Stack:** herdr 0.8.2 (Rust binary, socket API returns JSON), fish, Ghostty, git worktrees, Node/npm (intent bootstrap), jq (parse herdr JSON).
 
-**Spec:** `docs/superpowers/specs/2026-08-21-herdr-replaces-tmux-design.md`
+**Spec:** `docs/superpowers/specs/2026-08-21-herdr-replaces-tmux-design.md` (see the 2026-08-21 revision note).
 
----
-
-## Preconditions
-
-- Branch `herdr-swap` is checked out.
-- herdr is not installed yet.
-- Reference sources to port from:
-  - `scripts/ghostty-shell` — host branch (Supacode vs Ghostty).
-  - `ghostty/config` — `super+*` bindings.
-  - `fish/functions/wt.fish`, `fish/functions/wtrm.fish` — worktree create/remove.
-  - `/Users/darius/Work/optura/intent/.zed/worktree-setup.sh` — rich create flow.
-  - `tmux/conf/keybindings.conf` — the `prefix+f` sessionizer bind.
-
-## File structure
-
-| File | Responsibility | Action |
-| --- | --- | --- |
-| `docs/superpowers/plans/verify-gate-findings.md` | Record real herdr facts from the binary | Create (Task 0) |
-| herdr `config.toml` (path found in Task 0) | herdr defaults: shell, worktree dir, layout, hooks | Create |
-| `scripts/herdr-run-repo-hook.sh` | Resolve the main checkout, run its `.herdr/<hook>.sh` if present | Create (Task 1) |
-| `scripts/ghostty-shell` | Launch herdr for the Ghostty host | Modify |
-| `ghostty/config` | Reconcile `super+*` to herdr letters, add worktree keys | Modify |
-| `/Users/darius/Work/optura/intent/.herdr/setup.sh` | Repo create bootstrap (env, docs, deps, DB) | Create |
-| `/Users/darius/Work/optura/intent/.herdr/teardown.sh` | Repo teardown (salvage docs, drop DB) | Create |
-| `scripts/herdr-sessionizer` (conditional) | fish/fzf repo jump onto herdr | Create or skip |
-
-There is no unit-test framework for shell/config here. Each task verifies with a runnable command and a stated expected output — that is the "test".
+**Findings:** `docs/superpowers/plans/verify-gate-findings.md` — confirmed CLI, key names, and API shape. Trust it over any assumed syntax.
 
 ---
 
-## Task 0: Install herdr and run the verify gate
+## Task 0: Verify gate — DONE
+
+herdr 0.8.2 installed at `~/.local/bin/herdr`; findings recorded and committed.
+Confirmed: config `~/.config/herdr/config.toml`; `herdr --session <name>`;
+`herdr worktree create --path --branch --base`; `herdr pane split`;
+`herdr agent start <name> --kind <claude|codex> --pane <id>`; real key names.
+No further action.
+
+---
+
+## Task 1: herdr config — shell only
 
 **Files:**
-- Create: `docs/superpowers/plans/verify-gate-findings.md`
+- Create: `herdr/config.toml` in dotfiles, symlinked to `~/.config/herdr/config.toml` (add to `Makefile`, match the repo's symlink pattern).
 
-This task resolves every branch in the plan. Do it first. Do not edit any config until it is done.
+Config is minimal now — no hooks, no layout (the wrapper does those). herdr keeps
+default keybindings (reconcile happens in `ghostty/config`, Task 6). Set two keys
+that are unset by default so the worktree open/remove keys work.
 
-- [ ] **Step 1: Install herdr**
-
-Run: `curl -fsSL https://herdr.dev/install.sh | sh`
-Then: `herdr --version`
-Expected: a version string prints, `herdr` is on `PATH`.
-
-- [ ] **Step 2: Print the default config and find its path**
-
-Run: `herdr --default-config | head -50`
-Run: `herdr --help` and look for a config-path flag or env var; check `~/.config/herdr/` and `~/.herdr/`.
-Record the real config file path.
-
-- [ ] **Step 3: Answer each verify-gate question against the binary**
-
-For each item below, run the command or read `herdr --default-config` / `herdr --help` and record the finding.
-
-1. Config file path and format.
-2. Does `[worktrees] directory` accept a per-repo template (e.g. `{{ repo_root }}/.claude/worktrees`)? Decides **approach A (native)** vs **approach B (wrapper `hw`)** for worktree location.
-3. Do `worktree.created`, `worktree.opened`, `worktree.removed` fire, with `{{ branch }}` and `{{ worktree_path }}` available? A missing `worktree.removed` moves teardown to an `hw-rm` fish function.
-4. Does the `worktree.created` hook complete before `worktree.opened` applies the layout, or do agent panes need a ready-signal wait?
-5. Does `herdr worktree create` check out a named branch or a detached HEAD? Decides whether `setup.sh` keeps branch parsing.
-6. Is the workspace layout core config or a plugin?
-7. What is the attach / new-session subcommand (for `ghostty-shell`)?
-8. Exact key names: prefix, splits, tab ops, pane focus, worktree create/open/remove, copy-mode, reload, session-list.
-9. Can herdr attach a session by name from the CLI? Decides tmux-sessionizer rewrite vs drop.
-10. Does the hook `run` action accept an external command with arguments (needed for the `herdr-run-repo-hook.sh` dispatcher), and what CWD does it run in?
-
-- [ ] **Step 4: Write findings and commit**
-
-Write `docs/superpowers/plans/verify-gate-findings.md` with a line per question and the decision it drives (A/B, hook-present, branch-vs-detached, etc.).
-
-```bash
-git add docs/superpowers/plans/verify-gate-findings.md
-git commit -m "docs(plans): record herdr verify-gate findings from the binary"
-```
-
-**Gate:** later tasks read this file. Where a task says "approach A / B" or "if hook present", follow the recorded finding.
-
----
-
-## Task 1: herdr config — shell, worktree dir, layout, hooks
-
-**Files:**
-- Create: herdr `config.toml` (path from Task 0). Track it in dotfiles and symlink from the real path (match the repo's existing stow/symlink pattern — check the `Makefile`).
-
-- [ ] **Step 1: Seed the config**
+- [ ] **Step 1: Seed and trim**
 
 Run: `herdr --default-config > <dotfiles>/herdr/config.toml`
-Add the tracked file to the dotfiles install target (see `Makefile`), so it symlinks to the path Task 0 found.
-
-- [ ] **Step 2: Set shell and worktree directory**
-
+Uncomment/set only:
 ```toml
 [terminal]
 default_shell = "fish"
 
-[worktrees]
-# Approach A: per-repo template if Task 0 finding #2 supports it.
-directory = "{{ repo_root }}/.claude/worktrees"
-# Approach B (finding #2 = global-only): leave this at the herdr default and
-# let Task 5c's `hw` wrapper place the checkout. Add a note here pointing to it.
+[keys]
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+alt+d"
 ```
+Leave `[worktrees] directory` at default — the wrapper passes `--path`, so the global base is unused.
 
-- [ ] **Step 3: Define the workspace layout**
+- [ ] **Step 2: Symlink via Makefile and reload**
 
-One tab, three panes — `claude`, `codex`, `nvim` — each `cd`'d to `{{ worktree_path }}`. Use the exact layout syntax from Task 0 finding #6 (core config or plugin). Bind the layout to `worktree.opened` (finding #3) so new and reopened worktrees both get panes.
+Add the symlink target to `Makefile`. Create the link.
+Run: `herdr server reload-config` (if a server runs) — expect no parse error. Or `herdr --session cfgtest` then detach.
 
-- [ ] **Step 4: Create the hook dispatcher `scripts/herdr-run-repo-hook.sh`**
-
-The dispatcher resolves the repo's **main** checkout from the worktree path, then
-runs the main checkout's `.herdr/<hook>.sh` if it exists. This finds the script
-regardless of what the new worktree contains (a worktree cut from `origin/main`
-has no `.herdr/`), and puts the no-op-if-absent logic in one place.
+- [ ] **Step 3: Commit**
 
 ```bash
-#!/usr/bin/env bash
-# herdr lifecycle hook dispatcher. Resolve the repo's MAIN checkout from the
-# worktree, then run its .herdr/<hook>.sh if present. No-op when absent.
-#   herdr-run-repo-hook.sh <hook> <worktree_path> [<branch>]
-set -euo pipefail
-hook="$1"; wt="$2"; branch="${3:-}"
-main="$(dirname "$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir)")"
-script="$main/.herdr/$hook.sh"
-[ -x "$script" ] || exit 0
-exec "$script" "$wt" "$branch"
-```
-Run: `chmod +x <dotfiles>/scripts/herdr-run-repo-hook.sh`
-
-- [ ] **Step 5: Wire the generic lifecycle hooks to the dispatcher**
-
-Use the exact `run` syntax and template-var names from Task 0 findings #3 and #10.
-
-```
-worktree.created  ->  run  <dotfiles>/scripts/herdr-run-repo-hook.sh setup    "{{ worktree_path }}" "{{ branch }}"
-worktree.removed  ->  run  <dotfiles>/scripts/herdr-run-repo-hook.sh teardown "{{ worktree_path }}" "{{ branch }}"
-```
-
-Keep the hook repo-agnostic — never name intent here.
-
-**Ordering (finding #4):** if `created` does not block `opened`, make the agent panes wait for a ready signal. `setup.sh` writes `.herdr/.ready` on success. Prefix the `claude`/`codex` pane command with a **bounded** wait, so a failed bootstrap surfaces instead of hanging forever (default_shell is fish):
-
-```fish
-set -l n 0
-while not test -f .herdr/.ready
-    if test $n -ge 240
-        echo "herdr: bootstrap did not finish (no .herdr/.ready after 120s) — check setup.sh"
-        break
-    end
-    set n (math $n + 1); sleep 0.5
-end
-```
-
-- [ ] **Step 6: Verify herdr starts with the config**
-
-Run: `herdr` (then detach). 
-Expected: herdr starts, no config parse error, `default_shell` is fish.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add herdr/config.toml scripts/herdr-run-repo-hook.sh Makefile
-git commit -m "feat(herdr): add config and repo-hook dispatcher for lifecycle hooks"
+git add herdr/config.toml Makefile
+git commit -m "feat(herdr): add config.toml with fish shell and worktree keys"
 ```
 
 ---
@@ -178,27 +66,22 @@ git commit -m "feat(herdr): add config and repo-hook dispatcher for lifecycle ho
 **Files:**
 - Create: `/Users/darius/Work/optura/intent/.herdr/setup.sh`
 
-Port `intent/.zed/worktree-setup.sh`, dropping the Zed env-var caller. herdr passes the worktree path and branch as args.
+Port `intent/.zed/worktree-setup.sh`, dropping the Zed caller. The wrapper creates
+a **named** branch (`worktree create --branch`), so no detached-HEAD parsing and no
+async ready-signal are needed — the wrapper runs this synchronously before it
+starts the agents.
 
 - [ ] **Step 1: Write the script**
 
 ```bash
 #!/usr/bin/env bash
-# Per-worktree bootstrap, run by herdr's worktree.created hook.
+# Per-worktree bootstrap, run by the hw wrapper after `herdr worktree create`.
 #   setup.sh <worktree-path> <branch>
 set -euo pipefail
 
 wt_root="$1"
-branch="${2:-}"
 main_root="$(dirname "$(git -C "$wt_root" rev-parse --path-format=absolute --git-common-dir)")"
 cd "$wt_root"
-
-# Finding #5: if herdr leaves a detached HEAD, cut the branch from origin/main.
-# If herdr checks out a named branch, this block is a no-op and can be removed.
-if ! git symbolic-ref -q HEAD >/dev/null && [ -n "$branch" ]; then
-	git fetch origin main --quiet
-	git switch --no-track -c "$branch" origin/main
-fi
 
 # .env is gitignored and holds shared secrets — link main's copy.
 ln -sf "$main_root/.env" .env
@@ -211,36 +94,23 @@ fi
 
 npm install
 npx vite-node scripts/worktree/db-restore.ts
-
-# Ready signal for the agent panes (see herdr config Task 1 Step 5).
-# .herdr/ may be absent when the worktree is cut from a base without it.
-mkdir -p .herdr
-touch .herdr/.ready
 ```
 
-- [ ] **Step 2: Make it executable**
+- [ ] **Step 2: chmod + dry-run**
 
 Run: `chmod +x /Users/darius/Work/optura/intent/.herdr/setup.sh`
-
-- [ ] **Step 3: Dry-run the bootstrap by hand**
-
-Create a scratch worktree the old way and run the script against it:
 Run: `cd /Users/darius/Work/optura/intent && git worktree add --no-track -b tmp-herdr-test .claude/worktrees/tmp-herdr-test origin/main`
 Run: `.herdr/setup.sh "$(pwd)/.claude/worktrees/tmp-herdr-test" tmp-herdr-test`
-Expected: `.env` symlink exists, `docs/` populated, `node_modules/` present, db-restore ran, `.herdr/.ready` exists in the worktree.
+Expected: `.env` symlink, `docs/` populated, `node_modules/` present, db-restore ran, no error.
 
-- [ ] **Step 4: Ignore the ready signal, then commit (in the intent repo)**
-
-Add `.herdr/.ready` to the intent repo's `.gitignore` so the local signal is not
-untracked noise and a reopened worktree's persisted `.ready` reads as intentional.
+- [ ] **Step 3: Commit (intent repo)**
 
 ```bash
 cd /Users/darius/Work/optura/intent
-echo ".herdr/.ready" >> .gitignore
-git add .herdr/setup.sh .gitignore
-git commit -m "feat(worktree): add .herdr/setup.sh for herdr worktree.created bootstrap"
+git add .herdr/setup.sh
+git commit -m "feat(worktree): add .herdr/setup.sh for hw worktree bootstrap"
 ```
-Leave the scratch worktree for Task 3, then remove it there.
+Leave the scratch worktree for Task 3.
 
 ---
 
@@ -249,14 +119,14 @@ Leave the scratch worktree for Task 3, then remove it there.
 **Files:**
 - Create: `/Users/darius/Work/optura/intent/.herdr/teardown.sh`
 
-Port the state-cleanup steps from `wtrm.fish` (salvage docs, drop DB). herdr's `worktree remove` handles the git removal, so this script does **not** call `git worktree remove`.
+Port the state cleanup from `wtrm.fish`. Does **not** call `git worktree remove`
+— `hw-rm` does that after this script.
 
 - [ ] **Step 1: Write the script**
 
 ```bash
 #!/usr/bin/env bash
-# Per-worktree teardown, run by herdr's worktree.removed hook, BEFORE git
-# unlinks the checkout.
+# Per-worktree teardown, run by hw-rm BEFORE `herdr worktree remove`.
 #   teardown.sh <worktree-path> <branch>
 set -euo pipefail
 
@@ -264,7 +134,7 @@ wt_root="$1"
 main_root="$(dirname "$(git -C "$wt_root" rev-parse --path-format=absolute --git-common-dir)")"
 
 # Pull gitignored docs/ back into main before the checkout disappears.
-npx --prefix "$main_root" vite-node "$main_root/scripts/worktree/salvage-docs.ts" "$wt_root"
+( cd "$main_root" && npx vite-node scripts/worktree/salvage-docs.ts "$wt_root" )
 
 # db-drop derives the DB name from cwd, so run it inside the worktree.
 if [ -d "$wt_root/node_modules" ]; then
@@ -274,53 +144,117 @@ else
 fi
 ```
 
-- [ ] **Step 2: Make it executable**
+- [ ] **Step 2: chmod + dry-run against the scratch worktree**
 
 Run: `chmod +x /Users/darius/Work/optura/intent/.herdr/teardown.sh`
-
-- [ ] **Step 3: Dry-run against the scratch worktree from Task 2**
-
 Run: `/Users/darius/Work/optura/intent/.herdr/teardown.sh "/Users/darius/Work/optura/intent/.claude/worktrees/tmp-herdr-test" tmp-herdr-test`
 Expected: salvage-docs ran, db-drop ran, no error.
-If `npx --prefix "$main_root"` does not resolve main's `node_modules` for
-`salvage-docs.ts`, fall back to the original `wtrm.fish` pattern — run it from a
-CWD inside the main checkout: `( cd "$main_root" && npx vite-node scripts/worktree/salvage-docs.ts "$wt_root" )`.
-Then remove the scratch worktree:
-Run: `cd /Users/darius/Work/optura/intent && git worktree remove --force .claude/worktrees/tmp-herdr-test && git branch -D tmp-herdr-test`
+Then: `cd /Users/darius/Work/optura/intent && git worktree remove --force .claude/worktrees/tmp-herdr-test && git branch -D tmp-herdr-test`
 
-- [ ] **Step 4: Commit (in the intent repo)**
+- [ ] **Step 3: Commit (intent repo)**
 
 ```bash
 cd /Users/darius/Work/optura/intent
 git add .herdr/teardown.sh
-git commit -m "feat(worktree): add .herdr/teardown.sh for herdr worktree.removed cleanup"
+git commit -m "feat(worktree): add .herdr/teardown.sh for hw-rm cleanup"
 ```
 
 ---
 
-## Task 4: End-to-end worktree test through herdr
+## Task 4: `hw` and `hw-rm` fish wrappers — the core
 
-**Files:** none (verification only).
+**Files:**
+- Create: `fish/functions/hw.fish`
+- Create: `fish/functions/hw-rm.fish`
 
-- [ ] **Step 1: Create a worktree through herdr**
+herdr socket-API commands return JSON; parse pane IDs with `jq`. Verify exact JSON
+paths against live output — the skill file states `worktree create` opens a
+workspace and creation responses expose IDs (`.result.root_pane.pane_id`,
+`pane split` → `.result.pane.pane_id`). Confirm on the binary before trusting.
 
-In a herdr session inside the intent repo, press the worktree-create key (Task 0 finding #8) or run the create subcommand. Name the branch `herdr-e2e-test`.
-Expected: herdr creates the worktree at `.claude/worktrees/herdr-e2e-test` (approach A) or wherever `hw` placed it (approach B), `setup.sh` runs, the workspace opens with `claude` + `codex` + `nvim` panes.
+- [ ] **Step 1: Write `hw.fish`**
 
-- [ ] **Step 2: Assert the bootstrap ran and ordering held**
+```fish
+function hw --description 'herdr worktree: create off origin/main, bootstrap, lay out claude+codex+nvim'
+    if test (count $argv) -ne 1
+        echo "usage: hw <branch>" >&2; return 1
+    end
+    set -l branch $argv[1]
+    set -l common (git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+    test -z "$common"; and echo "hw: not in a git repo" >&2; and return 1
+    set -l main (path dirname $common)
+    set -l dir "$main/.claude/worktrees/$branch"
+    test -e $dir; and echo "hw: $dir exists" >&2; and return 1
 
-Expected: agent panes only became interactive after `.herdr/.ready` appeared; `.env`, `docs/`, `node_modules/` all present.
+    git -C $main fetch origin main --quiet; or return 1
 
-- [ ] **Step 3: Remove the worktree through herdr**
+    # 1. Create + open the worktree workspace. Capture the root pane id.
+    set -l created (herdr worktree create --path $dir --branch $branch --base origin/main --no-focus)
+    set -l root (echo $created | jq -r '.result.root_pane.pane_id')
 
-Press the worktree-remove key (or subcommand).
-Expected: `teardown.sh` runs (salvage-docs, db-drop), the worktree and branch are gone.
+    # 2. Bootstrap (repo-owned, optional).
+    if test -x "$main/.herdr/setup.sh"
+        "$main/.herdr/setup.sh" $dir $branch; or return 1
+    end
 
-- [ ] **Step 4: Record result in the findings file and commit**
+    # 3. Layout: nvim in root, claude top-right, codex bottom-right.
+    set -l right (herdr pane split --pane $root --direction right --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
+    herdr agent start claude --kind claude --pane $right
+    set -l bottom (herdr pane split --pane $right --direction down --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
+    herdr agent start codex --kind codex --pane $bottom
+    herdr pane send-text --pane $root "nvim ."\n
+    herdr pane focus --pane $root
+
+    echo "hw: $branch -> $dir"
+end
+```
+
+- [ ] **Step 2: Write `hw-rm.fish`**
+
+```fish
+function hw-rm --description 'herdr worktree teardown: salvage docs, drop DB, remove worktree'
+    set -l common (git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+    test -z "$common"; and echo "hw-rm: not in a git repo" >&2; and return 1
+    set -l main (path dirname $common)
+
+    set -l target
+    if test (count $argv) -eq 0
+        set target (git rev-parse --show-toplevel)
+    else if test -d $argv[1]
+        set target (path resolve $argv[1])
+    else
+        set target "$main/.claude/worktrees/$argv[1]"
+    end
+    if test (path resolve $target) = (path resolve $main)
+        echo "hw-rm: refusing to remove the main checkout" >&2; return 1
+    end
+    test -d $target; or begin; echo "hw-rm: no worktree at $target" >&2; return 1; end
+
+    set -l branch (git -C $target rev-parse --abbrev-ref HEAD)
+
+    if test -x "$main/.herdr/teardown.sh"
+        "$main/.herdr/teardown.sh" $target $branch; or return 1
+    end
+
+    # Leave the worktree before it is unlinked.
+    string match -q "$target*" (pwd); and cd $main
+    herdr worktree remove --path $target; or git -C $main worktree remove --force $target; or return 1
+    test "$branch" != HEAD; and git -C $main branch -D $branch
+    echo "hw-rm: removed $target"
+end
+```
+
+- [ ] **Step 3: Verify JSON paths and flags against live herdr**
+
+Before trusting the field paths and flags above, confirm on the binary:
+Run: `herdr worktree create --help`, `herdr pane split --help`, `herdr agent start --help`, `herdr pane send-text --help`, `herdr worktree remove --help`.
+Adjust `--pane`/`--path` flag names and the `jq` paths to match real output. `herdr --skill` documents the API shape.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add docs/superpowers/plans/verify-gate-findings.md
-git commit -m "test(herdr): record end-to-end worktree create/remove result"
+git add fish/functions/hw.fish fish/functions/hw-rm.fish
+git commit -m "feat(fish): add hw/hw-rm herdr worktree wrappers"
 ```
 
 ---
@@ -332,32 +266,27 @@ git commit -m "test(herdr): record end-to-end worktree create/remove result"
 
 - [ ] **Step 1: Change the Ghostty branch**
 
-Keep the Supacode branch unchanged. Replace the tmux line with the herdr attach/new command from Task 0 finding #7. Example shape (use the real subcommand):
-
+Keep the Supacode branch unchanged. Replace the tmux line:
 ```sh
 if [ -n "$SUPACODE_SOCKET_PATH" ]; then
     exec /usr/local/bin/fish
 else
-    exec /usr/local/bin/fish --login -c "herdr attach default || herdr new default"
+    exec /usr/local/bin/fish --login -c "herdr --session default"
 fi
 ```
+Ensure `~/.local/bin` is on PATH for the Ghostty shell (check `fish/config.fish`; add if missing).
 
-- [ ] **Step 2: Verify in a new Ghostty window**
+- [ ] **Step 2: Verify — INTERACTIVE (hand to the user)**
 
 Open a new Ghostty window.
-Expected: herdr starts (not tmux), fish is the shell, the `default` session persists across window close/reopen.
-Expected: a Supacode terminal still opens plain fish, no herdr.
+Expected: herdr starts (not tmux), fish is the shell, the `default` session persists across window close/reopen. A Supacode terminal still opens plain fish.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add scripts/ghostty-shell
-git commit -m "feat(ghostty): launch herdr instead of tmux for the Ghostty host"
+git add scripts/ghostty-shell fish/config.fish
+git commit -m "feat(ghostty): launch herdr --session default instead of tmux"
 ```
-
-- [ ] **Step 4 (approach B only): add the `hw` wrapper**
-
-If Task 0 finding #2 is global-only, add `fish/functions/hw.fish`: cut the worktree at `.claude/worktrees/<branch>` from `origin/main`, then hand the path to herdr to open. If finding #3 has no `worktree.removed`, also add `fish/functions/hw-rm.fish` that runs `.herdr/teardown.sh` then `git worktree remove`. Commit separately. Skip this step entirely under approach A.
 
 ---
 
@@ -366,91 +295,104 @@ If Task 0 finding #2 is global-only, add `fish/functions/hw.fish`: cut the workt
 **Files:**
 - Modify: `ghostty/config`
 
-Use the real herdr key names from Task 0 finding #8. The values below assume herdr's documented defaults; correct them to the findings.
+Keep herdr at default keys; change what `super+*` **sends** (approach A). Values
+below use the confirmed herdr 0.8.2 names.
 
 - [ ] **Step 1: Remap splits and pane navigation**
 
-Change these lines so `super+*` sends herdr's letter:
+| line today | change to | herdr action |
+| --- | --- | --- |
+| `super+shift+n=text:\x02%` | `super+shift+n=text:\x02-` | `split_horizontal = prefix+minus` |
+| `super+n=text:\x02\"` | `super+n=text:\x02v` | `split_vertical = prefix+v` |
+| `super+up=text:\x02\x1b[a` | `super+up=text:\x02k` | `focus_pane_up` |
+| `super+down=text:\x02\x1b[b` | `super+down=text:\x02j` | `focus_pane_down` |
+| `super+left=text:\x02\x1b[d` | `super+left=text:\x02h` | `focus_pane_left` |
+| `super+right=text:\x02\x1b[c` | `super+right=text:\x02l` | `focus_pane_right` |
 
-| line today | change to |
-| --- | --- |
-| `super+shift+n=text:\x02%` | `super+shift+n=text:\x02-` (split_horizontal) |
-| `super+n=text:\x02\"` | `super+n=text:\x02v` (split_vertical) |
-| `super+up=text:\x02\x1b[a` | `super+up=text:\x02k` |
-| `super+down=text:\x02\x1b[b` | `super+down=text:\x02j` |
-| `super+left=text:\x02\x1b[d` | `super+left=text:\x02h` |
-| `super+right=text:\x02\x1b[c` | `super+right=text:\x02l` |
+Note: `super+shift+n` sent `%` (a tmux split); herdr uses `prefix+shift+n` for
+`new_workspace`. Sending `prefix+minus` avoids that clash and gets a horizontal split.
 
-- [ ] **Step 2: Drop the dead tpm binds**
+- [ ] **Step 2: Fix the mismatched single-letter binds**
 
-Remove `super+shift+i=text:\x02I` and `super+shift+u=text:\x02U`. herdr has no plugin manager.
+- `super+k` sends `\x02s`. In herdr `prefix+s` is **settings**, not session-list. Decide: keep as a settings shortcut (rename intent), or repoint. If you want a session picker, herdr uses `prefix+w` (`workspace_picker`) — consider `super+k=text:\x02w`.
+- `super+r` sends `\x02r`. In herdr `prefix+r` is **resize_mode**; reload is `prefix+shift+r`. If `super+r` was meant as reload, change to `super+r=text:\x02R` (i.e. `prefix+shift+r`).
+- `super+q` sends `\x02d` → herdr `prefix+q` is detach; `\x02d` is not a herdr key. Change to `super+q=text:\x02q` (detach).
 
-- [ ] **Step 3: Add worktree keys**
+- [ ] **Step 3: Drop dead binds**
+
+Remove `super+shift+i` (`\x02I`) and `super+shift+u` (`\x02U`) — tpm, no herdr equivalent.
+
+- [ ] **Step 4: Add worktree keys**
 
 ```
 keybind = super+shift+g=text:\x02G
 keybind = super+shift+o=text:\x02O
 keybind = super+alt+d=text:\x02\x1bd
 ```
-Correct the letters to finding #8 (herdr worktree create/open/remove).
+`super+shift+g` → `prefix+shift+g` (`new_worktree`); `super+shift+o` → `prefix+shift+o` (`open_worktree`, set in Task 1); `super+alt+d` → `prefix+alt+d` (`remove_worktree`, set in Task 1). Confirm the escape bytes render the intended chords in Ghostty.
 
-- [ ] **Step 4: Fix copy-mode / reload / session-list if the letters differ**
+- [ ] **Step 5: Verify — INTERACTIVE (hand to the user)**
 
-Compare `super+[` (`\x02[`), `super+r` (`\x02r`), `super+k` (`\x02s`) against finding #8 and adjust only if herdr uses a different letter.
-
-- [ ] **Step 5: Verify each changed key**
-
-Reload Ghostty config. In a herdr session, press each remapped key.
-Expected: split H, split V, focus left/down/up/right, worktree create/open/remove all fire the right herdr action.
+Reload Ghostty. In a herdr session press each remapped key.
+Expected: split H/V, focus h/j/k/l, worktree create/open/remove all fire the right herdr action.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add ghostty/config
-git commit -m "feat(ghostty): remap super+* keys to herdr letters, add worktree keys"
+git commit -m "feat(ghostty): remap super+* keys to herdr 0.8.2 letters, add worktree keys"
 ```
 
 ---
 
-## Task 7: tmux-sessionizer decision
+## Task 7: tmux-sessionizer → herdr
 
 **Files:**
-- Create (conditional): `scripts/herdr-sessionizer`
-- Modify (conditional): `ghostty/config` (`super+f`)
+- Create: `scripts/herdr-sessionizer`
+- Modify: `ghostty/config` (`super+f`)
 
-Follow Task 0 finding #9.
+herdr attaches a session by name (`herdr --session <name>` / `herdr session attach
+<name>`), so the rewrite is viable.
 
-- [ ] **Step 1a (finding #9 = attach-by-name exists): rewrite onto herdr**
+- [ ] **Step 1: Rewrite onto herdr**
 
-Copy `~/.local/bin/tmux-sessionizer` to `scripts/herdr-sessionizer`. Replace the `tmux` session calls with the herdr attach-or-create-by-name command. Keep the fzf front end. Point `super+f` at it (run it directly, or via a herdr run key).
-Verify: press `super+f`, fzf lists project dirs, picking one opens a herdr session for it.
+Copy `~/.local/bin/tmux-sessionizer` to `scripts/herdr-sessionizer`. Replace the
+`tmux` session calls: fzf a project dir, derive a session name (basename, dots →
+underscores), then `herdr --session <name>` (with the dir as cwd). Keep the fzf
+front end.
 
-- [ ] **Step 1b (finding #9 = no attach-by-name): drop it**
+- [ ] **Step 2: Point `super+f` at it**
 
-Leave `super+f` for herdr's own session/worktree picker key (finding #8). Note the drop in the findings file.
+Today `super+f` sends `\x02f`, and tmux ran the sessionizer on `prefix+f`. herdr
+has no `prefix+f` runner. Options: (a) a herdr `[[keys.command]]` on `prefix+f`
+of type `shell`/`popup` running `herdr-sessionizer`; or (b) change `super+f` in
+`ghostty/config` to launch `herdr-sessionizer` directly. Pick one, wire it.
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 3: Verify — INTERACTIVE (hand to the user)**
+
+Press `super+f`. Expected: fzf lists project dirs; picking one opens/attaches a herdr session for it.
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/herdr-sessionizer ghostty/config   # or just the findings note
-git commit -m "feat(herdr): port sessionizer onto herdr"   # or: "chore: drop tmux-sessionizer under herdr"
+git add scripts/herdr-sessionizer ghostty/config herdr/config.toml
+git commit -m "feat(herdr): port sessionizer onto herdr session attach"
 ```
 
 ---
 
-## Task 8: Retire tmux and the fish worktree helpers (dormant)
+## Task 8: Retire tmux and the old fish helpers (dormant)
 
-**Files:**
-- No deletions yet — dormancy only.
+**Files:** dormancy only, no deletions.
 
-- [ ] **Step 1: Confirm tmux is no longer launched**
+- [ ] **Step 1: Confirm tmux is not launched**
 
-Grep the repo for any remaining tmux launch: `rg -n "tmux (attach|new)" scripts ghostty fish`
-Expected: only historic/commented references; `ghostty-shell` launches herdr.
+Run: `rg -n "tmux (attach|new)" scripts ghostty fish`
+Expected: `ghostty-shell` launches herdr; only historic references remain.
 
 - [ ] **Step 2: Mark the trial**
 
-Add a dated note to `docs/superpowers/plans/verify-gate-findings.md`: keep `tmux/`, `tmux.conf`, `fish/functions/wt.fish`, `fish/functions/wtrm.fish` dormant for one week (until 2026-08-28), then delete in a follow-up commit if herdr holds up.
+Append to `verify-gate-findings.md`: keep `tmux/`, `tmux.conf`, `fish/functions/wt.fish`, `fish/functions/wtrm.fish` dormant until 2026-08-28, then delete if herdr holds up. `hw`/`hw-rm` supersede `wt`/`wtrm`.
 
 - [ ] **Step 3: Commit**
 
@@ -463,8 +405,9 @@ git commit -m "chore: mark tmux and wt/wtrm dormant pending one-week herdr trial
 
 ## Done criteria
 
-- Ghostty launches herdr; Supacode still launches plain fish.
-- Creating a worktree in herdr runs `setup.sh` (env, docs, deps, DB) and opens `claude` + `codex` + `nvim`, agents starting only after bootstrap.
-- Removing a worktree runs `teardown.sh` (salvage docs, drop DB).
-- `super+*` splits, tab switching, pane nav, and worktree keys all drive herdr.
+- Ghostty launches `herdr --session default`; Supacode still launches plain fish.
+- `hw <branch>` creates an in-repo worktree, runs `setup.sh`, and opens `nvim` + `claude` + `codex` laid out in one workspace.
+- `hw-rm` runs `teardown.sh` (salvage docs, drop DB) then removes the worktree + branch.
+- `super+*` splits, tab switching, pane nav, and worktree keys drive herdr.
+- `super+f` opens a herdr session picker.
 - tmux and `wt`/`wtrm` are dormant, deletable after the trial week.
