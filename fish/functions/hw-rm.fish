@@ -1,0 +1,57 @@
+function hw-rm --description 'herdr worktree teardown: salvage docs, drop DB, remove worktree'
+    # Usage: hw-rm [<branch>|<path>]   (defaults to the current worktree)
+    # Runs the repo's .herdr/teardown.sh if present, then removes the worktree
+    # via the herdr API (by workspace id) and deletes the branch.
+    #
+    # NOTE: run from inside a herdr session (a herdr server must be running).
+    set -l common (git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+    if test -z "$common"
+        echo "hw-rm: not inside a git repository" >&2
+        return 1
+    end
+    set -l main (path dirname $common)
+
+    set -l target
+    if test (count $argv) -eq 0
+        set target (git rev-parse --show-toplevel)
+    else if test -d $argv[1]
+        set target (path resolve $argv[1])
+    else
+        set target "$main/.claude/worktrees/$argv[1]"
+    end
+
+    if test (path resolve $target) = (path resolve $main)
+        echo "hw-rm: refusing to remove the main checkout" >&2
+        return 1
+    end
+    if not test -d $target
+        echo "hw-rm: no worktree at $target" >&2
+        return 1
+    end
+
+    set -l branch (git -C $target rev-parse --abbrev-ref HEAD)
+
+    # 1. Repo-owned teardown (salvage docs, drop DB) before the checkout goes.
+    if test -x "$main/.herdr/teardown.sh"
+        "$main/.herdr/teardown.sh" $target $branch; or return 1
+    end
+
+    # Leave the worktree before it is unlinked.
+    if string match -q "$target*" (pwd)
+        cd $main
+    end
+
+    # 2. Remove via herdr (needs the workspace id, resolved from the path).
+    set -l ws (herdr worktree list | jq -r --arg p $target '.result.worktrees[]? | select(.path == $p) | .workspace_id' | head -n1)
+    set -l removed 0
+    if test -n "$ws" -a "$ws" != null
+        herdr worktree remove --workspace $ws --force; and set removed 1
+    end
+    # Fallback to plain git if herdr could not resolve/remove it.
+    if test $removed -eq 0
+        git -C $main worktree remove --force $target; or return 1
+    end
+
+    test "$branch" != HEAD; and git -C $main branch -D $branch
+    echo "hw-rm: removed $target"
+end

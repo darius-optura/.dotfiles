@@ -1,0 +1,12 @@
+# herdr config — managed in dotfiles, symlinked to ~/.config/herdr/config.toml.
+# Only overrides are set here; every other value uses herdr's built-in default
+# (see `herdr --default-config`). herdr keeps its default keybindings — the
+# super+* reconcile happens in ghostty/config.
+
+[terminal]
+default_shell = "fish"
+
+[keys]
+# These two are unset by default; enable so the worktree open/remove chords work.
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+alt+d"

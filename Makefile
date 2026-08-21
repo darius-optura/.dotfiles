@@ -49,7 +49,7 @@ backup: ## Backup current configurations
 	@echo "Creating backup..."
 	@BACKUP_DIR="$$HOME/.dotfiles-backup-$$(date +%Y%m%d-%H%M%S)"; \
 	mkdir -p "$$BACKUP_DIR"; \
-	for config in ghostty fish nvim starship tmux bat lazygit alacritty kitty tmux-sessionizer; do \
+	for config in ghostty fish nvim starship tmux bat lazygit herdr alacritty kitty tmux-sessionizer; do \
 		if [ -e "$$HOME/.config/$$config" ] && [ ! -L "$$HOME/.config/$$config" ]; then \
 			cp -r "$$HOME/.config/$$config" "$$BACKUP_DIR/"; \
 			echo "  Backed up $$config"; \
@@ -70,7 +70,7 @@ restore: ## Restore from latest backup
 		exit 1; \
 	fi; \
 	echo "Restoring from $$LATEST_BACKUP..."; \
-	for config in ghostty fish nvim starship tmux bat lazygit alacritty kitty tmux-sessionizer; do \
+	for config in ghostty fish nvim starship tmux bat lazygit herdr alacritty kitty tmux-sessionizer; do \
 		if [ -d "$$LATEST_BACKUP/$$config" ]; then \
 			rm -rf "$$HOME/.config/$$config"; \
 			cp -r "$$LATEST_BACKUP/$$config" "$$HOME/.config/"; \
@@ -106,7 +106,7 @@ check: ## Verify installation health
 	done
 	@echo ""
 	@echo "Configuration Symlinks:"
-	@for config in ghostty fish nvim starship tmux bat lazygit opencode; do \
+	@for config in ghostty fish nvim starship tmux bat lazygit herdr opencode; do \
 		if [ -L "$$HOME/.config/$$config" ]; then \
 			echo "  ✓ $$config"; \
 		else \

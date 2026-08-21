@@ -103,14 +103,11 @@ Run: `cd /Users/darius/Work/optura/intent && git worktree add --no-track -b tmp-
 Run: `.herdr/setup.sh "$(pwd)/.claude/worktrees/tmp-herdr-test" tmp-herdr-test`
 Expected: `.env` symlink, `docs/` populated, `node_modules/` present, db-restore ran, no error.
 
-- [ ] **Step 3: Commit (intent repo)**
+- [ ] **Step 3: Do NOT commit — `.herdr/` is globally gitignored**
 
-```bash
-cd /Users/darius/Work/optura/intent
-git add .herdr/setup.sh
-git commit -m "feat(worktree): add .herdr/setup.sh for hw worktree bootstrap"
-```
-Leave the scratch worktree for Task 3.
+`.herdr/` is in `~/.gitignore` (global excludesfile), so `setup.sh`/`teardown.sh`
+stay local to each machine and are never committed to intent. Leave the scratch
+worktree for Task 3.
 
 ---
 
@@ -151,13 +148,9 @@ Run: `/Users/darius/Work/optura/intent/.herdr/teardown.sh "/Users/darius/Work/op
 Expected: salvage-docs ran, db-drop ran, no error.
 Then: `cd /Users/darius/Work/optura/intent && git worktree remove --force .claude/worktrees/tmp-herdr-test && git branch -D tmp-herdr-test`
 
-- [ ] **Step 3: Commit (intent repo)**
+- [ ] **Step 3: Do NOT commit — `.herdr/` is globally gitignored**
 
-```bash
-cd /Users/darius/Work/optura/intent
-git add .herdr/teardown.sh
-git commit -m "feat(worktree): add .herdr/teardown.sh for hw-rm cleanup"
-```
+Same as Task 2 Step 3 — `teardown.sh` is local-only, never committed to intent.
 
 ---
 
@@ -351,15 +344,17 @@ git commit -m "feat(ghostty): remap super+* keys to herdr 0.8.2 letters, add wor
 - Create: `scripts/herdr-sessionizer`
 - Modify: `ghostty/config` (`super+f`)
 
-herdr attaches a session by name (`herdr --session <name>` / `herdr session attach
-<name>`), so the rewrite is viable.
+herdr has **workspaces** inside one persistent session (the `default` session
+Ghostty attaches). A project-jumper should create/focus a **workspace**, not spawn
+a separate top-level session — that keeps everything under one session.
 
-- [ ] **Step 1: Rewrite onto herdr**
+- [ ] **Step 1: Rewrite onto herdr workspaces**
 
 Copy `~/.local/bin/tmux-sessionizer` to `scripts/herdr-sessionizer`. Replace the
-`tmux` session calls: fzf a project dir, derive a session name (basename, dots →
-underscores), then `herdr --session <name>` (with the dir as cwd). Keep the fzf
-front end.
+`tmux` session calls: fzf a project dir, then create or focus a herdr **workspace**
+for it — `herdr workspace list` to find an existing workspace whose cwd matches,
+else `herdr workspace create --cwd <dir>` (confirm the exact flag with
+`herdr workspace create -h`). Keep the fzf front end.
 
 - [ ] **Step 2: Point `super+f` at it**
 
