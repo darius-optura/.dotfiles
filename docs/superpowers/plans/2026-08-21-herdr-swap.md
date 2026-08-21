@@ -146,7 +146,18 @@ worktree.removed  ->  run  <dotfiles>/scripts/herdr-run-repo-hook.sh teardown "{
 
 Keep the hook repo-agnostic — never name intent here.
 
-**Ordering (finding #4):** if `created` does not block `opened`, make the agent panes wait for a ready signal. `setup.sh` writes `.herdr/.ready` on success; the `claude`/`codex` pane command runs `until [ -f .herdr/.ready ]; do sleep 0.5; done` first.
+**Ordering (finding #4):** if `created` does not block `opened`, make the agent panes wait for a ready signal. `setup.sh` writes `.herdr/.ready` on success. Prefix the `claude`/`codex` pane command with a **bounded** wait, so a failed bootstrap surfaces instead of hanging forever (default_shell is fish):
+
+```fish
+set -l n 0
+while not test -f .herdr/.ready
+    if test $n -ge 240
+        echo "herdr: bootstrap did not finish (no .herdr/.ready after 120s) — check setup.sh"
+        break
+    end
+    set n (math $n + 1); sleep 0.5
+end
+```
 
 - [ ] **Step 6: Verify herdr starts with the config**
 
@@ -344,7 +355,7 @@ git add scripts/ghostty-shell
 git commit -m "feat(ghostty): launch herdr instead of tmux for the Ghostty host"
 ```
 
-- [ ] **Step 5c (approach B only): add the `hw` wrapper**
+- [ ] **Step 4 (approach B only): add the `hw` wrapper**
 
 If Task 0 finding #2 is global-only, add `fish/functions/hw.fish`: cut the worktree at `.claude/worktrees/<branch>` from `origin/main`, then hand the path to herdr to open. If finding #3 has no `worktree.removed`, also add `fish/functions/hw-rm.fish` that runs `.herdr/teardown.sh` then `git worktree remove`. Commit separately. Skip this step entirely under approach A.
 
