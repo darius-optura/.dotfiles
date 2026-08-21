@@ -42,7 +42,8 @@ function hw-rm --description 'herdr worktree teardown: salvage docs, drop DB, re
     end
 
     # 2. Remove via herdr (needs the workspace id, resolved from the path).
-    set -l ws (herdr worktree list | jq -r --arg p $target '.result.worktrees[]? | select(.path == $p) | .workspace_id' | head -n1)
+    # The worktree JSON exposes the open workspace as `open_workspace_id`.
+    set -l ws (herdr worktree list | jq -r --arg p $target '.result.worktrees[]? | select(.path == $p) | .open_workspace_id // empty' | head -n1)
     set -l removed 0
     if test -n "$ws" -a "$ws" != null
         herdr worktree remove --workspace $ws --force; and set removed 1
