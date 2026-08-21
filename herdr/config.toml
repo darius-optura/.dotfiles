@@ -14,6 +14,10 @@ remove_worktree = "prefix+alt+d"
 # Cycle workspaces with direct vim-style chords (no prefix): h = prev, l = next.
 previous_workspace = "ctrl+shift+h"
 next_workspace = "ctrl+shift+l"
+# Cycle agent focus (down = next, up = prev), and jump to agent N.
+next_agent = "ctrl+shift+j"
+previous_agent = "ctrl+shift+k"
+focus_agent = "prefix+alt+1..9"
 
 [keys.indexed]
 # ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
@@ -32,3 +36,12 @@ type = "popup"
 command = "herdr-sessionizer"
 width = "80%"
 height = "80%"
+
+# super+r -> prompt for a branch and spin up an isolated worktree run (hw).
+# super+r sends prefix+ctrl+r from ghostty/config. Reload moved to prefix+shift+r.
+[[keys.command]]
+key = "prefix+ctrl+r"
+type = "popup"
+command = "hw-run"
+width = "60%"
+height = "40%"

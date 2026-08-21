@@ -45,7 +45,7 @@ keybind = super+t=text:\x02c
 keybind = super+shift+t=text:\x02!
 keybind = super+w=text:\x02x
 keybind = super+z=text:\x02z
-keybind = super+r=text:\x02R
+keybind = super+r=text:\x02\x12
 keybind = super+m=text:\x02m
 keybind = super+up=text:\x02k
 keybind = super+down=text:\x02j
