@@ -1,4 +1,4 @@
-function hw-open --description 'Open an existing .claude/worktrees/<branch> with nvim+claude+codex layout'
+function hw-open --description 'Open an existing .claude/worktrees/<branch> with nvim+claude+shell layout'
     # Usage: hw-open <branch>
     # Opens an existing worktree as a herdr workspace and lays out the same
     # 3 panes as `hw`. No bootstrap — the worktree is assumed already set up.

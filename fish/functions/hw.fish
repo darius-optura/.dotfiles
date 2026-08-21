@@ -1,4 +1,4 @@
-function hw --description 'herdr worktree: create off origin/main, bootstrap, lay out nvim+claude+codex'
+function hw --description 'herdr worktree: create off origin/main, bootstrap, lay out nvim+claude+shell'
     # Usage: hw <branch>
     # Creates <repo>/.claude/worktrees/<branch>, runs the repo's .herdr/setup.sh
     # if present, then builds a 3-pane workspace via the herdr socket API:
@@ -45,7 +45,7 @@ function hw --description 'herdr worktree: create off origin/main, bootstrap, la
         "$main/.herdr/setup.sh" $dir $branch; or return 1
     end
 
-    # 3. Layout: nvim (root) + claude (top-right) + codex (bottom-right).
+    # 3. Layout: nvim (top-left) + claude (top-right) + shell (bottom).
     _hw_layout $root $dir
 
     echo "hw: $branch -> $dir"
