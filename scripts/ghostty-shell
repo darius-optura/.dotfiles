@@ -1,11 +1,22 @@
 #!/bin/sh
 # Launched by Ghostty's `command =`. Both Ghostty.app and Supacode embed
 # libghostty and read the same ~/.config/ghostty/config, so branch by host:
-#   Supacode -> fish, no tmux (Supacode manages its own tabs/panes)
-#   Ghostty  -> fish + tmux (default session)
+#   Supacode -> fish, no multiplexer (Supacode manages its own tabs/panes)
+#   Ghostty  -> herdr (multiplexer for agents + worktrees)
 # SUPACODE_SOCKET_PATH is set in Supacode terminals, unset in plain Ghostty.
 if [ -n "$SUPACODE_SOCKET_PATH" ]; then
     exec /usr/local/bin/fish
-else
-    exec /usr/local/bin/fish --login -c "tmux attach -t default || tmux new -s default"
 fi
+
+# nvm.fish (conf.d/nvm.fish) only runs `nvm use` for INTERACTIVE fish. The herdr
+# server starts non-interactively, so without this its panes -- and the /bin/sh
+# hooks those panes spawn (e.g. Claude Code) -- get a PATH with no `node`. Put
+# the default node bin and ~/.local/bin (herdr) on PATH so the whole herdr
+# process tree inherits them.
+for d in "$HOME/.local/share/nvm"/*/bin; do
+    [ -x "$d/node" ] && PATH="$d:$PATH"
+done
+PATH="$HOME/.local/bin:$PATH"
+export PATH
+
+exec /usr/local/bin/fish --login -c "herdr --session default"
