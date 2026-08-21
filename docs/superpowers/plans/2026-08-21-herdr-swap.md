@@ -356,12 +356,18 @@ for it — `herdr workspace list` to find an existing workspace whose cwd matche
 else `herdr workspace create --cwd <dir>` (confirm the exact flag with
 `herdr workspace create -h`). Keep the fzf front end.
 
-- [ ] **Step 2: Point `super+f` at it**
+- [ ] **Step 2: Point `super+f` at it — DONE via [[keys.command]]**
 
-Today `super+f` sends `\x02f`, and tmux ran the sessionizer on `prefix+f`. herdr
-has no `prefix+f` runner. Options: (a) a herdr `[[keys.command]]` on `prefix+f`
-of type `shell`/`popup` running `herdr-sessionizer`; or (b) change `super+f` in
-`ghostty/config` to launch `herdr-sessionizer` directly. Pick one, wire it.
+`super+f` already sends `\x02f` (= `prefix+f`). Added a herdr `[[keys.command]]`
+on `prefix+f`, `type = "popup"`, `command = "herdr-sessionizer"`. So `super+f`
+opens the picker in a popup. Script lives in `bin/herdr-sessionizer`, symlinked
+to `~/.local/bin` via install.sh `bin_scripts`. Uses `herdr workspace list`
+(focus by label) / `herdr workspace create --cwd --label --focus`.
+
+Also added **`hw-open <branch>`** (fish/functions/hw-open.fish): adopts an
+existing `.claude/worktrees/<branch>` via `herdr worktree open` and applies the
+shared `_hw_layout` (nvim+claude+codex). `hw` and `hw-open` share
+`fish/functions/_hw_layout.fish`.
 
 - [ ] **Step 3: Verify — INTERACTIVE (hand to the user)**
 
