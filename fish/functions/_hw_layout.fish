@@ -6,14 +6,17 @@ function _hw_layout --description 'Lay out nvim + claude + a shell in a herdr wo
     set -l dir $argv[2]
 
     # Bottom: full-width shell pane (~1/4 height). No agent — plain shell for
-    # git, tests, commands. Split the root down first so it spans full width.
-    herdr pane split --pane $root --direction down --ratio 0.25 --cwd $dir --no-focus >/dev/null
+    # git, tests, commands. Split root down first so it spans full width.
+    # herdr --ratio is the EXISTING pane's kept fraction, so 0.75 leaves the
+    # bottom at ~25%.
+    herdr pane split --pane $root --direction down --ratio 0.75 --cwd $dir --no-focus >/dev/null
 
-    # Top-right: claude (~40% of the top row width).
-    set -l right (herdr pane split --pane $root --direction right --ratio 0.4 --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
+    # Top-right: claude (~40% of the top row). Root (left/nvim) keeps 60%.
+    set -l right (herdr pane split --pane $root --direction right --ratio 0.6 --cwd $dir --no-focus | jq -r '.result.pane.pane_id')
     herdr agent start claude --kind claude --pane $right
 
-    # Top-left (root): nvim. Keep focus here.
-    herdr pane send-text --pane $root "nvim ."(printf '\r')
+    # nvim in root (top-left). Let the shell start first so the command lands.
+    sleep 1
+    herdr pane send-text --pane $root "nvim ."(printf '\n')
     herdr pane focus --pane $root
 end
