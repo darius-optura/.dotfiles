@@ -21,7 +21,7 @@ and `worktree.created` / `worktree.removed` lifecycle events.
 | Decision | Choice |
 | --- | --- |
 | Scope | Full swap. herdr becomes the default multiplexer Ghostty launches. |
-| Worktree ownership | herdr owns worktree creation. Retire the `wt` fish function. |
+| Worktree ownership | herdr owns worktree creation. Retire `wt` (approach B swaps it for a thin `hw`, not full removal — see Worktree location). |
 | Editing | Terminal-only. Each worktree workspace has an nvim pane. No Zed. |
 | Agents | `claude` and `codex`. |
 | Bootstrap | A fresh worktree needs setup (env, docs, deps, dev DB). |
@@ -68,7 +68,7 @@ and `worktree.created` / `worktree.removed` lifecycle events.
 
 ## Architecture
 
-Five units, each with one job.
+Six units, each with one job.
 
 ### 1. Shell entry — `scripts/ghostty-shell`
 
@@ -87,10 +87,19 @@ Seed from `herdr --default-config`, then set:
 - `[terminal] default_shell = "fish"`.
 - Worktree base pointing at the repo's `.claude/worktrees` (see the worktree
   location note below).
-- A default workspace layout applied when a worktree opens: one tab, three
-  panes — `claude`, `codex`, `nvim` — each with the worktree as its working
-  directory.
+- A default workspace layout, one tab, three panes — `claude`, `codex`,
+  `nvim` — each with the worktree as its working directory. The layout applies
+  on `worktree.opened` so both a new worktree and an existing one reopened get
+  their panes. A new worktree fires `worktree.created` first, then
+  `worktree.opened`.
 - Keybindings section (see unit 5).
+
+**Ordering — must hold.** The `worktree.created` bootstrap (unit 3) must finish
+before the layout's agent panes start. Otherwise `claude` and `codex` launch in
+a worktree with no `.env` and no `node_modules`, and the first run breaks. The
+plan must guarantee this — a synchronous `created` hook that completes before
+`opened` applies the layout, or an agent-pane command that waits for a ready
+signal `setup.sh` writes.
 
 Depends on: the config file path (confirm on the binary); whether the layout is
 core config or needs a plugin.
@@ -105,9 +114,10 @@ exists, so no repo detail leaks into dotfiles. This mirrors the old
 - `worktree.removed` hook runs `$repo/.herdr/teardown.sh "$worktree_path" "$branch"`.
 
 `intent/.herdr/setup.sh` reproduces the create flow: symlink `.env`, rsync main's
-`docs/` in, `npm install`, `db-restore.ts`. Because herdr passes the branch and
-path as arguments, the script drops the detached-HEAD branch parsing the Zed
-version needed.
+`docs/` in, `npm install`, `db-restore.ts`. If herdr checks out a named branch,
+the script drops the detached-HEAD branch parsing the Zed version needed and
+takes the branch as an argument. If herdr leaves a detached HEAD, the script
+keeps that parsing. The verify gate settles which.
 
 `intent/.herdr/teardown.sh` reproduces the teardown: `salvage-docs.ts`, then
 `db-drop.ts`.
@@ -162,12 +172,17 @@ before any config or script edit:
 1. Config file path and format.
 2. Whether `[worktrees] directory` accepts a per-repo template. Decides
    approach A vs B for worktree location.
-3. That `worktree.created` and `worktree.removed` fire with `{{ branch }}` and
-   `{{ worktree_path }}`. A missing `worktree.removed` moves teardown to an
-   `hw-rm` fish function fallback.
-4. Whether the workspace layout is core config or needs a plugin.
-5. The attach / new-session subcommand for `ghostty-shell`.
-6. The prefix and worktree keybinding names.
+3. That `worktree.created`, `worktree.opened`, and `worktree.removed` fire with
+   `{{ branch }}` and `{{ worktree_path }}`. A missing `worktree.removed` moves
+   teardown to an `hw-rm` fish function fallback.
+4. Whether a `worktree.created` hook completes before the `worktree.opened`
+   layout applies, or the agent panes need a ready-signal wait. Decides the
+   ordering guarantee in unit 2.
+5. Whether herdr checks out a named branch or a detached HEAD. Decides whether
+   `setup.sh` keeps the branch parsing.
+6. Whether the workspace layout is core config or needs a plugin.
+7. The attach / new-session subcommand for `ghostty-shell`.
+8. The prefix and worktree keybinding names.
 
 Findings feed the plan. The plan does not assume any uncertain key.
 
