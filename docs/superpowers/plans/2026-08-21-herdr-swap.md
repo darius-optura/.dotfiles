@@ -29,6 +29,7 @@
 | --- | --- | --- |
 | `docs/superpowers/plans/verify-gate-findings.md` | Record real herdr facts from the binary | Create (Task 0) |
 | herdr `config.toml` (path found in Task 0) | herdr defaults: shell, worktree dir, layout, hooks | Create |
+| `scripts/herdr-run-repo-hook.sh` | Resolve the main checkout, run its `.herdr/<hook>.sh` if present | Create (Task 1) |
 | `scripts/ghostty-shell` | Launch herdr for the Ghostty host | Modify |
 | `ghostty/config` | Reconcile `super+*` to herdr letters, add worktree keys | Modify |
 | `/Users/darius/Work/optura/intent/.herdr/setup.sh` | Repo create bootstrap (env, docs, deps, DB) | Create |
@@ -71,6 +72,7 @@ For each item below, run the command or read `herdr --default-config` / `herdr -
 7. What is the attach / new-session subcommand (for `ghostty-shell`)?
 8. Exact key names: prefix, splits, tab ops, pane focus, worktree create/open/remove, copy-mode, reload, session-list.
 9. Can herdr attach a session by name from the CLI? Decides tmux-sessionizer rewrite vs drop.
+10. Does the hook `run` action accept an external command with arguments (needed for the `herdr-run-repo-hook.sh` dispatcher), and what CWD does it run in?
 
 - [ ] **Step 4: Write findings and commit**
 
@@ -112,27 +114,50 @@ directory = "{{ repo_root }}/.claude/worktrees"
 
 One tab, three panes — `claude`, `codex`, `nvim` — each `cd`'d to `{{ worktree_path }}`. Use the exact layout syntax from Task 0 finding #6 (core config or plugin). Bind the layout to `worktree.opened` (finding #3) so new and reopened worktrees both get panes.
 
-- [ ] **Step 4: Wire the generic lifecycle hooks**
+- [ ] **Step 4: Create the hook dispatcher `scripts/herdr-run-repo-hook.sh`**
+
+The dispatcher resolves the repo's **main** checkout from the worktree path, then
+runs the main checkout's `.herdr/<hook>.sh` if it exists. This finds the script
+regardless of what the new worktree contains (a worktree cut from `origin/main`
+has no `.herdr/`), and puts the no-op-if-absent logic in one place.
+
+```bash
+#!/usr/bin/env bash
+# herdr lifecycle hook dispatcher. Resolve the repo's MAIN checkout from the
+# worktree, then run its .herdr/<hook>.sh if present. No-op when absent.
+#   herdr-run-repo-hook.sh <hook> <worktree_path> [<branch>]
+set -euo pipefail
+hook="$1"; wt="$2"; branch="${3:-}"
+main="$(dirname "$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir)")"
+script="$main/.herdr/$hook.sh"
+[ -x "$script" ] || exit 0
+exec "$script" "$wt" "$branch"
+```
+Run: `chmod +x <dotfiles>/scripts/herdr-run-repo-hook.sh`
+
+- [ ] **Step 5: Wire the generic lifecycle hooks to the dispatcher**
+
+Use the exact `run` syntax and template-var names from Task 0 findings #3 and #10.
 
 ```
-worktree.created  ->  run  <repo>/.herdr/setup.sh    "{{ worktree_path }}" "{{ branch }}"
-worktree.removed  ->  run  <repo>/.herdr/teardown.sh "{{ worktree_path }}" "{{ branch }}"
+worktree.created  ->  run  <dotfiles>/scripts/herdr-run-repo-hook.sh setup    "{{ worktree_path }}" "{{ branch }}"
+worktree.removed  ->  run  <dotfiles>/scripts/herdr-run-repo-hook.sh teardown "{{ worktree_path }}" "{{ branch }}"
 ```
 
-The hook must no-op cleanly when the repo has no `.herdr/` script (test `-x` before running). Keep the hook repo-agnostic — never name intent here.
+Keep the hook repo-agnostic — never name intent here.
 
 **Ordering (finding #4):** if `created` does not block `opened`, make the agent panes wait for a ready signal. `setup.sh` writes `.herdr/.ready` on success; the `claude`/`codex` pane command runs `until [ -f .herdr/.ready ]; do sleep 0.5; done` first.
 
-- [ ] **Step 5: Verify herdr starts with the config**
+- [ ] **Step 6: Verify herdr starts with the config**
 
 Run: `herdr` (then detach). 
 Expected: herdr starts, no config parse error, `default_shell` is fish.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add herdr/config.toml Makefile
-git commit -m "feat(herdr): add config with fish shell, worktree dir, layout, lifecycle hooks"
+git add herdr/config.toml scripts/herdr-run-repo-hook.sh Makefile
+git commit -m "feat(herdr): add config and repo-hook dispatcher for lifecycle hooks"
 ```
 
 ---
@@ -176,7 +201,9 @@ fi
 npm install
 npx vite-node scripts/worktree/db-restore.ts
 
-# Ready signal for the agent panes (see herdr config Task 1 Step 4).
+# Ready signal for the agent panes (see herdr config Task 1 Step 5).
+# .herdr/ may be absent when the worktree is cut from a base without it.
+mkdir -p .herdr
 touch .herdr/.ready
 ```
 
@@ -191,11 +218,15 @@ Run: `cd /Users/darius/Work/optura/intent && git worktree add --no-track -b tmp-
 Run: `.herdr/setup.sh "$(pwd)/.claude/worktrees/tmp-herdr-test" tmp-herdr-test`
 Expected: `.env` symlink exists, `docs/` populated, `node_modules/` present, db-restore ran, `.herdr/.ready` exists in the worktree.
 
-- [ ] **Step 4: Commit (in the intent repo)**
+- [ ] **Step 4: Ignore the ready signal, then commit (in the intent repo)**
+
+Add `.herdr/.ready` to the intent repo's `.gitignore` so the local signal is not
+untracked noise and a reopened worktree's persisted `.ready` reads as intentional.
 
 ```bash
 cd /Users/darius/Work/optura/intent
-git add .herdr/setup.sh
+echo ".herdr/.ready" >> .gitignore
+git add .herdr/setup.sh .gitignore
 git commit -m "feat(worktree): add .herdr/setup.sh for herdr worktree.created bootstrap"
 ```
 Leave the scratch worktree for Task 3, then remove it there.
@@ -240,6 +271,9 @@ Run: `chmod +x /Users/darius/Work/optura/intent/.herdr/teardown.sh`
 
 Run: `/Users/darius/Work/optura/intent/.herdr/teardown.sh "/Users/darius/Work/optura/intent/.claude/worktrees/tmp-herdr-test" tmp-herdr-test`
 Expected: salvage-docs ran, db-drop ran, no error.
+If `npx --prefix "$main_root"` does not resolve main's `node_modules` for
+`salvage-docs.ts`, fall back to the original `wtrm.fish` pattern — run it from a
+CWD inside the main checkout: `( cd "$main_root" && npx vite-node scripts/worktree/salvage-docs.ts "$wt_root" )`.
 Then remove the scratch worktree:
 Run: `cd /Users/darius/Work/optura/intent && git worktree remove --force .claude/worktrees/tmp-herdr-test && git branch -D tmp-herdr-test`
 
