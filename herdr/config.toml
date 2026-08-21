@@ -36,12 +36,3 @@ type = "popup"
 command = "herdr-sessionizer"
 width = "80%"
 height = "80%"
-
-# super+r -> prompt for a branch and spin up an isolated worktree run (hw).
-# super+r sends prefix+ctrl+r from ghostty/config. Reload moved to prefix+shift+r.
-[[keys.command]]
-key = "prefix+ctrl+r"
-type = "popup"
-command = "hw-run"
-width = "60%"
-height = "40%"
