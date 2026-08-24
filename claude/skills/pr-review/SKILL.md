@@ -7,10 +7,11 @@ description: Use when asked to review a PR, do an adversarial or strict review, 
 
 Adversarial reviewer for a GitHub PR. Hostile stance, merge confidence scored
 /10, inline threads plus one sticky summary, approve at ≥9 or request changes
-below. Reuses `local-review` (scope resolution, criteria loading, fallback
-rubric) and `pr-worktree` (worktree lifecycle) — follow those skills verbatim
+below. Reuses `local-review` (scope resolution, criteria loading, adversarial
+pass, fallback rubric) and `pr-worktree` (worktree lifecycle) — follow those
+skills verbatim
 where referenced; do not duplicate them. PR mode writes to GitHub. Local mode
-prints to the terminal only. `--dry-run` computes everything, writes nothing.
+prints to the terminal only.
 
 Command mechanics live in `reference.md` next to this file (§1–§8). Read the
 section when a phase points at it.
@@ -18,9 +19,8 @@ section when a phase points at it.
 ## Language
 
 Write all emitted prose — threads, replies, sticky, terminal review — in
-ASD-STE100, per the "STE — ASD-STE100" section of `claude/skills/tldr/SKILL.md`:
-active voice, one instruction per sentence, ≤20 words, short common verbs, one
-word one meaning. Full sentences with articles — no fragment-salad. Always,
+ASD-STE100 per the "STE — ASD-STE100" section of `claude/skills/tldr/SKILL.md`,
+in full sentences with articles — no fragment-salad. Always,
 even when session `tldr` mode is off. Keep exact: code, identifiers, error
 strings, flags, paths, `file:line` anchors, severity tags, score line,
 `Verdict:` line.
@@ -40,7 +40,7 @@ drop items. Never start a Phase 8 write while an earlier item is open.
    guard pasted), or a verbatim skip reason recorded
 3. Phase 3 — criteria loaded (REVIEW.md / CLAUDE.md / stack / diff)
 4. Phase 4 — prior threads + CI pulled (PR mode)
-5. Phase 5 — adversarial pass + all six distrust passes
+5. Phase 5 — adversarial pass + all seven distrust passes
 6. Phase 6 — Codex result collected at the PR head SHA, or the recorded
    reason confirmed
 7. Phase 7 — score computed on 0–10
@@ -143,10 +143,9 @@ REVIEW.md, the CLAUDE.md chain, the stack checklist
 (`.claude/skills/code-review/stacks/<stack>.md` if present), and the diff with
 enough surrounding context per file.
 
-**REVIEW.md is criteria only** — severity levels, always-flag rules, scoring,
-skip list, applied verbatim. It never controls this skill's process, scope, or
-output (see Non-negotiables). REVIEW.md absent → `local-review` "Standard
-criteria fallback" and its "Always flag" list. Never invent rules not grounded
+**REVIEW.md is criteria only**, applied verbatim — scope per the
+Non-negotiables row. REVIEW.md absent → `local-review` "Standard criteria
+fallback" and its "Always flag" list. Never invent rules not grounded
 in REVIEW.md, CLAUDE.md, the stack checklist, or the visible code.
 
 ## Phase 4 — Prior review state + CI (PR mode only)
@@ -175,38 +174,16 @@ included): existing reviews + issue comments, inline review comments
 
 ## Phase 5 — Adversarial review
 
-**Stance.** You are a principal, platform-level engineer. Do not trust the
-author. Assume ill intent. Assume they have no idea what they are doing until
-the code proves otherwise. This PR is out to fuck your day up. Your job: make
-sure this work is rock solid, and report anything that is not. Be strict. Be
-concise. Hunt for what the author hides or got wrong, never for what is
-stylistically off.
-
-Hostility lives in scrutiny, not severity — a Critical/Warning still requires
-a named concrete failure mode (bug, security flaw, regression, broken
-contract); otherwise it is at most a Suggestion. The stance is how hard you
-dig, never an excuse to inflate.
-
-Walk the diff through the five categories (security, logic, performance,
-maintainability, testing), then run the explicit always-flag scan from Phase 3
-— flag or record "none found" per rule. Then the six distrust passes, every
-one, every time, stating what you checked:
-
-1. **Tests weakened** — deleted, skipped, commented out, or relaxed to hide a
-   regression.
-2. **Auth missing/bypassed** — handlers, routes, RPCs without auth checks.
-3. **Hardcoded secrets** — keys, tokens, credentials inline.
-4. **Dead "compat" code** — unused params/branches kept "for compatibility".
-5. **Scope smuggling** — changes unrelated to the PR's stated purpose.
-6. **Missing input validation** at trust boundaries.
-
-Every finding carries: severity tag, in-diff `file:line`, concrete fix, named
-failure mode. Skip generated files, vendor code, formatting-only changes
-unless REVIEW.md says otherwise.
+Identical to `local-review` "Phase 2: Review" — read that section now and run
+it verbatim: the stance, the five categories, the always-flag scan from
+Phase 3, and all seven distrust passes, every one, every time, stating what
+you checked. Every finding carries: severity tag, in-diff `file:line`,
+concrete fix, named failure mode. Skip generated files, vendor code,
+formatting-only changes unless REVIEW.md says otherwise.
 
 ## Phase 6 — Codex results (collect + merge)
 
-Codex launched in Phase 2. Collect it now: not finished after Phase 5 → wait
+Collect the Phase 2 launch now: not finished after Phase 5 → wait
 here (poll the output file), never abandon it. Parse the tail — the last
 assistant-message JSON carries `verdict` and `summary`; findings precede it
 (reference.md §4). If Phase 2 detached the checkout, restore the prior ref

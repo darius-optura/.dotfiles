@@ -5,18 +5,19 @@ description: Use when asked to "review my changes", "review this branch", "do a 
 
 # Local Review
 
-Mirrors the GitHub CI Claude review (severity tags, scoring, summary
-format), but runs locally against the working tree or branch diff. **No
-GitHub posting, no fix loop, no thread management.** This is read-only
-analysis that prints a review to the terminal.
+The same adversarial review as `pr-review`, run locally against the working
+tree or branch diff — no Codex pass, no PR thread history, and **no GitHub
+posting, no fix loop, no thread management.** This is read-only analysis
+that prints a review to the terminal. It keeps the CI review's severity
+tags, scoring, and summary format so scores line up.
 
-For the post-and-fix workflow against a real PR, use `pr-review-fix` (a
-project skill) instead.
+For the post-and-fix workflow against a real PR, use `pr-review` instead.
 
 On invocation, create one TodoWrite todo per phase (scope resolution, load
-criteria, review + always-flag scan, score, PR hygiene, output). Mark each
-complete only after the work is done. The always-flag scan is its own step —
-do not fold it into the general review.
+criteria, adversarial review + always-flag scan + seven distrust passes,
+score, PR hygiene, output). Mark each complete only after the work is done.
+The always-flag scan and the distrust passes are their own steps — do not
+fold them into the general review.
 
 ## Inputs
 
@@ -106,24 +107,53 @@ five categories the CI reviewer uses, so coverage matches:
 
 ## Phase 2: Review
 
-Walk the diff and identify issues. For each one, decide:
+**Stance.** You are a principal, platform-level engineer. Do not trust the
+author. Assume ill intent. Assume they have no idea what they are doing
+until the code proves otherwise. This diff is out to fuck your day up. Your
+job: make sure this work is rock solid, and report anything that is not. Be
+strict. Be concise. Hunt for what the author hides or got wrong, never for
+what is stylistically off.
+
+Hostility lives in scrutiny, not severity — a Critical/Warning still
+requires a named concrete failure mode (bug, security flaw, regression,
+broken contract); otherwise it is at most a Suggestion.
+
+Walk the diff through the five categories (Phase 1). Then run the explicit
+always-flag scan: if REVIEW.md, CLAUDE.md, or the stack checklist lists
+"always flag" patterns (or `[ ]` checklist items), scan the diff for each
+one and either flag or note that none were found — it is the
+highest-signal part of the review. Then the seven distrust passes, every
+one, every time, stating what you checked:
+
+1. **Tests weakened** — deleted, skipped, commented out, or relaxed to hide
+   a regression.
+2. **Auth missing/bypassed** — handlers, routes, RPCs without auth checks.
+3. **Hardcoded secrets** — keys, tokens, credentials inline.
+4. **Dead "compat" code** — unused params/branches kept "for compatibility".
+5. **Scope smuggling** — changes unrelated to the change's stated purpose.
+6. **Missing input validation** at trust boundaries.
+7. **Comment rot** — audit every comment the diff adds or changes. One
+   finding per comment block, never one catch-all:
+   - References deleted, renamed, or absent code ("the old X", "replaces
+     Y", "previously", an identifier not in the tree) → **[Warning]**: the
+     next editor acts on a false account of the code.
+   - Justifies the decision or narrates the change ("we decided", "instead
+     of", "this approach is correct because"), or cites a
+     task/issue/ADR/spec/plan without a constraint the code cannot show →
+     **[Suggestion]**: belongs in the PR description, not the code.
+   - Restates what the code does, or runs past 2 lines → **[Suggestion]**:
+     delete, or compress to ≤2 lines stating a non-obvious *why*.
+   Never flag a ≤2-line, present-tense comment stating a hidden constraint,
+   invariant, or workaround.
+
+Every finding carries:
 
 - **Severity** — using REVIEW.md's levels if defined, else the standard
   fallback (`[Critical]`, `[Warning]`, `[Suggestion]`, `[Nit]`).
 - **Location** — `file:line` referencing a line that exists in the diff.
 - **Concrete fix** — what the change should look like, not just "this
   is wrong". One or two lines is enough.
-
-Apply the same default stance the CI review uses: **be constructive,
-focus on issues that matter, not style nits.** A finding only counts
-as Critical/Warning if you can name the concrete failure mode (bug,
-security flaw, regression, broken contract). If you cannot, it is at
-most a Suggestion.
-
-If REVIEW.md, CLAUDE.md, or the stack checklist lists "always flag"
-patterns (or `[ ]` checklist items), scan the diff explicitly for each
-one and either flag or note that none were found. Do not skip the
-always-flag scan — it is the highest-signal part of the review.
+- **Failure mode** — named and concrete, or downgrade to Suggestion.
 
 ### Skip
 
@@ -181,8 +211,8 @@ predictable.
 
 Do NOT post anything to GitHub. Do NOT modify any files. Do NOT run
 formatters, linters, or tests as part of this skill — review only.
-If the user wants to apply fixes, they can ask separately and use the
-`pr-review-fix` skill or run their fix workflow.
+If the user wants to apply fixes, they can ask separately and run their
+fix workflow.
 
 ## Standard criteria fallback
 
@@ -198,14 +228,6 @@ override repo-specific rules when REVIEW.md exists.
 - Breaking API or interface changes without documentation
 - Missing input validation at trust boundaries
 - Missing error handling for expected failure cases
-- Long or superfluous comments — multi-line comment blocks, docstrings
-  longer than one line, or comments that restate what the code does
-  (well-named identifiers already convey "what"). Comments referencing
-  the current task/PR/caller ("added for X flow", "used by Y", "fixes
-  issue #123") rot fast and belong in PR descriptions, not code. Flag
-  as **[Suggestion]** with concrete fix: delete, or compress to one
-  line explaining a non-obvious *why* (hidden constraint, subtle
-  invariant, workaround for specific bug).
 - Dead parameters retained "for caller-signature compatibility" —
   parameters renamed to `_foo` (or otherwise marked unused) with a
   comment justifying their presence as preserving the caller signature.
