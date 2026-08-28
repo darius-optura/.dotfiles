@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move four skills out of the dotfiles symlink install and into a standalone Claude Code plugin named `occam`, renamed to `razor`, `scrutiny`, `inquest` and `bench`.
+**Goal:** Move four skills out of the dotfiles symlink install and into a standalone Claude Code plugin named `occam`, renamed to `razor`, `scrutiny`, `inquest` and `bench`, with intensity levels and token statistics deleted rather than ported.
 
-**Architecture:** The repo at `~/Work/optura/occam` is both the plugin and its own single-plugin marketplace, following the layout of `openai-codex`. Skills, commands and hooks sit at the repo root. `hooks/hooks.json` wires three events through `${CLAUDE_PLUGIN_ROOT}`. Two behaviour changes come with the move: the default mode flips to `off`, and the statusline gets an installer because a plugin cannot set the `statusLine` key.
+**Architecture:** The repo at `~/Work/optura/occam` is both the plugin and its own single-plugin marketplace, following the layout of `openai-codex`. Skills and hooks sit at the repo root. `hooks/hooks.json` wires two events through `${CLAUDE_PLUGIN_ROOT}`. There is no `commands/` directory and no state migration.
 
-**Tech Stack:** Markdown skills, Node.js hooks (no dependencies, `node --test` for the one unit under test), POSIX shell.
+**Tech Stack:** Markdown skills, Node.js hooks (no dependencies, `node --test`), POSIX shell.
 
 **Spec:** `docs/superpowers/specs/2026-08-28-occam-plugin-design.md`
 
@@ -14,58 +14,54 @@
 
 ## File Structure
 
-Files created in `~/Work/optura/occam`:
+Created in `~/Work/optura/occam`:
 
 | Path | Responsibility |
 |---|---|
 | `.claude-plugin/plugin.json` | Plugin identity and version |
 | `.claude-plugin/marketplace.json` | Single-plugin marketplace pointing at `./` |
-| `skills/razor/SKILL.md` | Compressed output and minimal code |
+| `skills/razor/SKILL.md` | Compressed output and minimal code, one level |
 | `skills/scrutiny/SKILL.md` | Read-only local review |
 | `skills/inquest/SKILL.md` | Adversarial PR review that posts to GitHub |
 | `skills/inquest/reference.md` | Command mechanics §1–§8 |
 | `skills/inquest/sticky-template.md` | Sticky summary template |
 | `skills/inquest/check-sticky.sh` | Sticky validator |
-| `skills/bench/SKILL.md` | Worktree lifecycle for a PR, over supacode, herdr or plain git |
-| `commands/razor-stats.md` | `/razor-stats` slash command |
-| `hooks/hooks.json` | Event wiring |
-| `hooks/razor-config.js` | Mode resolution, state paths, legacy migration |
+| `skills/bench/SKILL.md` | Worktree lifecycle, over supacode, herdr or plain git |
+| `hooks/hooks.json` | Event wiring, two events |
+| `hooks/razor-config.js` | On/off resolution and flag file access |
 | `hooks/razor-activate.js` | SessionStart activation |
 | `hooks/razor-mode-tracker.js` | UserPromptSubmit reminder |
-| `hooks/razor-stats.js` | Token accounting, `--refresh` on Stop |
-| `hooks/razor-statusline.sh` | Badge for an existing statusline |
+| `hooks/razor-statusline.sh` | `[RAZOR]` badge |
 | `scripts/install-statusline.sh` | Writes `statusLine` into `settings.json` |
-| `tests/razor-config.test.js` | Unit tests for the two behaviour changes |
-| `README.md` | Install, commands, statusline step |
+| `tests/razor-config.test.js` | Unit tests for the on/off resolver |
+| `README.md` | Install, skills, how to turn razor on, statusline |
 | `LICENSE` | MIT |
 
-Files changed in `~/.dotfiles` (last task only):
+Changed in `~/.dotfiles` (Task 12 only):
 
 | Path | Change |
 |---|---|
 | `claude/skills/{tldr,local-review,pr-review,pr-worktree}` | Delete |
-| `claude/hooks/tldr-*.{js,sh}` | Delete |
+| `claude/hooks/tldr-*.{js,sh}` | Delete, all five |
 | `claude/commands/tldr-stats.md` | Delete |
-| `claude/settings.json.template` | Drop three hook entries, add the plugin |
-| `scripts/claude-statusline.sh:148-153` | Resolve the badge script inside the plugin |
+| `claude/settings.json.template` | Drop the two tldr hook entries, add the plugin |
+| `scripts/claude-statusline.sh:148-153` | Resolve the badge inside the plugin |
 | `AGENTS.md` | Record where these skills now live |
 
-`install.sh` needs no change. It symlinks the `skills`, `hooks` and `commands`
-directories as a whole, not file by file.
+`install.sh` needs no change. It symlinks `skills`, `hooks` and `commands` as
+whole directories, so deleting the files is the entire job.
 
 ---
 
 ### Task 1: Scaffold the repo
 
 **Files:**
-- Create: `~/Work/optura/occam/.claude-plugin/plugin.json`
-- Create: `~/Work/optura/occam/.claude-plugin/marketplace.json`
-- Create: `~/Work/optura/occam/LICENSE`
+- Create: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `LICENSE`
 
-- [ ] **Step 1: Create the manifest directory**
+- [ ] **Step 1: Create the directories**
 
 ```bash
-cd ~/Work/optura/occam && mkdir -p .claude-plugin skills commands hooks scripts tests
+cd ~/Work/optura/occam && mkdir -p .claude-plugin skills hooks scripts tests
 ```
 
 - [ ] **Step 2: Write `.claude-plugin/plugin.json`**
@@ -85,6 +81,8 @@ cd ~/Work/optura/occam && mkdir -p .claude-plugin skills commands hooks scripts 
 
 - [ ] **Step 3: Write `.claude-plugin/marketplace.json`**
 
+No placeholder text. The plugin entry carries a real description.
+
 ```json
 {
   "name": "occam",
@@ -96,7 +94,7 @@ cd ~/Work/optura/occam && mkdir -p .claude-plugin skills commands hooks scripts 
   "plugins": [
     {
       "name": "occam",
-      "description": "Terse output, adversarial review.",
+      "description": "Terse output and adversarial code review: razor, scrutiny, inquest and bench.",
       "version": "1.0.0",
       "author": { "name": "Darius Cupsa" },
       "source": "./"
@@ -105,7 +103,7 @@ cd ~/Work/optura/occam && mkdir -p .claude-plugin skills commands hooks scripts 
 }
 ```
 
-- [ ] **Step 4: Verify both files parse**
+- [ ] **Step 4: Verify both parse**
 
 Run: `cd ~/Work/optura/occam && node -e "['plugin','marketplace'].forEach(f=>JSON.parse(require('fs').readFileSync('.claude-plugin/'+f+'.json')));console.log('OK')"`
 Expected: `OK`
@@ -117,21 +115,19 @@ Standard MIT text, copyright `2026 Darius Cupsa`.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd ~/Work/optura/occam
-git add .claude-plugin LICENSE
-git commit -m "feat: scaffold the occam plugin manifests"
+git add .claude-plugin LICENSE && git commit -m "feat: scaffold the occam plugin manifests"
 ```
 
 ---
 
-### Task 2: Copy and rename the four skills
+### Task 2: Copy the four skills under their new names
 
-Copy, do not move. The dotfiles copies stay until Task 10 proves the plugin works.
+Copy, do not move. The dotfiles copies stay until Task 11 proves the plugin works.
 
 **Files:**
 - Create: `skills/razor/SKILL.md`, `skills/scrutiny/SKILL.md`, `skills/inquest/{SKILL.md,reference.md,sticky-template.md,check-sticky.sh}`, `skills/bench/SKILL.md`
 
-- [ ] **Step 1: Copy the files under their new names**
+- [ ] **Step 1: Copy**
 
 ```bash
 cd ~/Work/optura/occam
@@ -144,17 +140,14 @@ cp "$D/pr-worktree/SKILL.md"   skills/bench/SKILL.md
 chmod +x skills/inquest/check-sticky.sh
 ```
 
-- [ ] **Step 2: Rewrite the four `name:` frontmatter fields**
+- [ ] **Step 2: Rewrite the four `name:` fields**
 
-`skills/razor/SKILL.md` → `name: razor`, `skills/scrutiny/SKILL.md` →
-`name: scrutiny`, `skills/inquest/SKILL.md` → `name: inquest`,
-`skills/bench/SKILL.md` → `name: bench`.
+`razor`, `scrutiny`, `inquest`, `bench`. Leave every `description:` alone;
+Tasks 3 and 4 handle those.
 
-Leave every `description:` field alone in this step. Task 3 handles them.
+- [ ] **Step 3: Verify**
 
-- [ ] **Step 3: Verify the frontmatter**
-
-Run: `cd ~/Work/optura/occam && grep -h '^name:' skills/*/SKILL.md | sort`
+Run: `grep -h '^name:' skills/*/SKILL.md | sort`
 Expected:
 ```
 name: bench
@@ -171,102 +164,169 @@ git add skills && git commit -m "feat: add the four skills under their new names
 
 ---
 
-### Task 3: Rewrite the cross-references inside the skill bodies
+### Task 3: Strip the intensity levels from `razor`
 
-The bodies hold 41 references to the old names. A blind `sed` is wrong here:
-some strings are runtime artifacts, not prose. Read the table before editing.
+The levels reference three skills nobody wrote. Delete them from the body
+before rewriting the references, so Task 4 has less to touch.
 
 **Files:**
-- Modify: `skills/razor/SKILL.md`, `skills/scrutiny/SKILL.md`, `skills/inquest/SKILL.md`, `skills/inquest/reference.md`, `skills/bench/SKILL.md`
+- Modify: `skills/razor/SKILL.md`
+
+- [ ] **Step 1: Delete the level machinery from the frontmatter**
+
+Remove the `argument-hint: "[lite|full|ultra]"` line. In `description:`,
+delete the clause `Supports intensity levels: lite, full (default), ultra.`
+Keep every trigger phrase: `tldr mode`, `use tldr`, `tldr style`,
+`less tokens`, `be brief`, `be lazy`, `simplest solution`, `do less`. Change
+the `/tldr` mention to `/razor`.
+
+- [ ] **Step 2: Delete the level machinery from the body**
+
+| Delete | Where |
+|---|---|
+| `Default: **full**. Switch: /tldr lite\|full\|ultra.` | Persistence section |
+| The `\| **lite** \|` and `\| **ultra** \|` table rows | Intensity table |
+| The `- lite:` and `- ultra:` example lines | Both example pairs, four lines |
+| "at any level, including ultra" | STATE section, reword to "always" |
+
+Keep the `| **full** |` row, but drop the now-pointless table header wording
+about levels if it reads oddly with one row. The `## Intensity` heading may
+go; its content becomes plain prose.
+
+- [ ] **Step 3: Verify no level survives**
+
+Run: `grep -n 'lite\|ultra\|argument-hint\|intensity levels' skills/razor/SKILL.md`
+Expected: no output.
+
+- [ ] **Step 4: Verify the triggers survive**
+
+Run: `grep -c 'tldr' skills/razor/SKILL.md`
+Expected: at least 1. Every hit must sit inside `description:`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add skills/razor && git commit -m "refactor(razor): drop the intensity levels
+
+lite and ultra, and the commit/review/compress modes, referenced skills that
+were never written. One behaviour remains, on or off."
+```
+
+---
+
+### Task 4: Rewrite the cross-references
+
+The four bodies hold 64 references to the old names. Some strings are
+runtime artifacts, not prose. Read the table before editing.
+
+**Files:**
+- Modify: every file under `skills/`
 
 - [ ] **Step 1: Apply the rename table**
 
-| Old string | New string | Note |
+| Old string | New string | Kind |
 |---|---|---|
-| `` `local-review` `` | `` `scrutiny` `` | Skill reference in prose |
-| `` `pr-review` `` | `` `inquest` `` | Skill reference in prose |
-| `` `pr-worktree` `` | `` `bench` `` | Skill reference in prose |
-| `/pr-worktree <N>` | `/bench <N>` | Command in `bench` description |
-| `pr-review/<N>` | `inquest/<N>` | **Git branch name**, in `bench` |
-| `pr-review-<N>` | `inquest-<N>` | **Worktree directory name**, in `bench` |
-| `.pr-review-map.json` | `.inquest-map.json` | **State file**, in `bench` |
-| `tldr` in `razor` prose | `razor` | Skill self-reference |
+| `` `local-review` `` | `` `scrutiny` `` | Prose |
+| `` `pr-review` `` | `` `inquest` `` | Prose |
+| `` `pr-worktree` `` | `` `bench` `` | Prose |
+| `/pr-worktree <N>` | `/bench <N>` | Command |
+| `pr-review/<N>` | `inquest/<N>` | **Git branch name** |
+| `pr-review-<N>` | `inquest-<N>` | **Worktree directory** |
+| `.pr-review-map.json` | `.inquest-map.json` | **State file** |
+| `<!-- pr-review:sticky -->` | `<!-- inquest:sticky -->` | **Wire marker** |
+| `pr-review passed` | `inquest passed` | **GitHub label** |
 
-- [ ] **Step 2: Keep the trigger words in the `razor` description**
+- [ ] **Step 2: Change the sticky marker in all three files together**
 
-The `description:` field of `skills/razor/SKILL.md` must still contain the
-literal strings `tldr mode`, `use tldr`, `tldr style`, `be brief` and
-`be lazy`. Saying "tldr mode" must keep starting the skill. Rewrite only the
-`/tldr` command mention to `/razor`.
+The marker lives in `sticky-template.md` line 1, in `check-sticky.sh` which
+validates that exact line, and in `reference.md` which greps for it to find
+an existing sticky. Change all three in one edit or the validator fails.
 
-- [ ] **Step 3: Define `SKILL_DIR` explicitly in `inquest`**
+Accepted consequence: a sticky already posted on an open PR is no longer
+found, so a re-review posts a second one. Note this in the README.
 
-`skills/inquest/SKILL.md` uses `$SKILL_DIR` at three places without ever
-setting it. Inside a plugin the directory is known. Add this line to the
-skill body where the sticky phase begins, before the first use:
+- [ ] **Step 3: Define `SKILL_DIR` in `inquest`**
+
+`skills/inquest/SKILL.md` uses `$SKILL_DIR` three times and never sets it.
+Add this before the first use, in the sticky phase:
 
 ```bash
 SKILL_DIR="${CLAUDE_PLUGIN_ROOT}/skills/inquest"
 ```
 
-- [ ] **Step 4: Verify no old name survives outside the trigger list**
+- [ ] **Step 4: Verify the old names are gone**
 
 Run:
 ```bash
 cd ~/Work/optura/occam
 grep -rn 'local-review\|pr-worktree\|pr-review' skills/ ; echo "exit=$?"
 ```
-Expected: no matches, `exit=1`.
+Expected: no matches, `exit=1`. This covers `sticky-template.md`,
+`check-sticky.sh` and `reference.md`, not only the two `SKILL.md` files.
 
 Run:
 ```bash
 grep -rn 'tldr' skills/ | grep -v '^skills/razor/SKILL.md:'
 ```
-Expected: no output. Every remaining `tldr` lives in the `razor` description.
+Expected: no output.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Verify the validator still passes its own template**
+
+Run:
+```bash
+cd ~/Work/optura/occam/skills/inquest
+cp sticky-template.md /tmp/sticky-check.md
+bash check-sticky.sh /tmp/sticky-check.md 2>&1 | head -5
+```
+Expected: it complains about unfilled `<…>` placeholders, **not** about a
+missing or wrong marker on line 1. A marker complaint means Step 2 missed a
+file.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add skills && git commit -m "refactor: rename the skill cross-references"
+git add skills && git commit -m "refactor: rename the skill cross-references
+
+Includes the runtime artifacts, not only prose: the git branch prefix, the
+worktree directory name, the state file, the sticky marker and the GitHub
+label."
 ```
 
 ---
 
-### Task 4: Give `bench` three worktree backends
-
-`bench` currently assumes Supacode. Supacode is not on this machine, and a
-teammate may not have it. Probe for a backend instead of assuming one.
+### Task 5: Give `bench` three worktree backends
 
 **Files:**
 - Modify: `skills/bench/SKILL.md`
 
-- [ ] **Step 1: Add the backend probe to the top of the provision flow**
+- [ ] **Step 1: Add the backend probe before the provision flow**
 
-Insert this section before "Provision flow". It runs once per invocation.
+`BENCH_BACKEND` overrides the probe so each path can be tested without
+changing what is installed.
 
-```markdown
+````markdown
 ## Backend
 
 Resolve `BACKEND` first. Do not assume one is present.
 
 ```bash
-if command -v supacode >/dev/null 2>&1; then BACKEND=supacode
-elif command -v herdr  >/dev/null 2>&1; then BACKEND=herdr
+if [ -n "${BENCH_BACKEND:-}" ]; then BACKEND="$BENCH_BACKEND"
+elif command -v supacode >/dev/null 2>&1; then BACKEND=supacode
+elif command -v herdr    >/dev/null 2>&1; then BACKEND=herdr
 else BACKEND=git
 fi
 echo "backend=$BACKEND"
 ```
 
 Print the result. A silent choice hides why a later command failed.
-```
+````
 
-- [ ] **Step 2: Rewrite provision step 4 as a branch over the three backends**
+- [ ] **Step 2: Rewrite provision steps 4 and 5 as a three-way branch**
 
-Steps 1–3 of the provision flow (resolve the PR, fetch the head, delete a
-stale branch) are backend-independent and stay as they are. Replace step 4
-and step 5 with:
+Provision steps 1–3 (resolve the PR, fetch the head, delete a stale branch)
+are backend-independent and stay as they are.
 
-```markdown
+````markdown
 4. Create the worktree with the resolved backend.
 
    **supacode** — capture the printed ID in the same call that creates the
@@ -275,20 +335,20 @@ and step 5 with:
    WT_ID=$(supacode repo worktree-new --branch inquest/<N> --name inquest-<N> --base "$SHA" | tail -n1)
    ```
 
-   **herdr** — `herdr worktree create` prints JSON. Ask for no focus, so
-   provisioning never steals the user's current pane:
+   **herdr** — prints JSON. Ask for no focus, so provisioning never steals
+   the user's current pane:
    ```bash
-   OUT=$(herdr worktree create --cwd "$MAIN_ROOT" --branch inquest/<N> \
-           --base "$SHA" --label inquest-<N> --no-focus)
-   echo "$OUT"
+   herdr worktree create --cwd "$MAIN_ROOT" --branch inquest/<N> \
+     --base "$SHA" --label inquest-<N> --no-focus
    ```
-   Read `WT_PATH` and `WT_ID` out of that JSON. If the shape is not what you
-   expect, do not guess — resolve both from the list instead:
+   Then resolve both values from the list, which has a known shape:
    ```bash
    herdr worktree list --cwd "$MAIN_ROOT" \
-     | jq -r --arg b "inquest/<N>" '.result.worktrees[] | select(.branch==$b) | .path, .open_workspace_id'
+     | jq -r --arg b "inquest/<N>" \
+       '.result.worktrees[] | select(.branch==$b) | .path, .open_workspace_id'
    ```
-   `open_workspace_id` is the value `herdr worktree remove --workspace` takes.
+   `open_workspace_id` is what `herdr worktree remove --workspace` takes.
+   Without `jq`, read the same two fields with `node -e`.
 
    **git** — no workspace manager, so there is no ID. `<owner>` is
    `headRepositoryOwner` from step 1:
@@ -297,16 +357,15 @@ and step 5 with:
    git worktree add "$WT_PATH" "$SHA"
    ```
 
-5. Confirm `WT_PATH` exists and holds the PR's head SHA:
+5. Confirm the checkout is at the PR's head:
    ```bash
    git -C "$WT_PATH" rev-parse HEAD    # must equal $SHA
    ```
-```
+````
 
 - [ ] **Step 3: Record the backend in the state file**
 
-The archive flow must use the backend that created the worktree. Change the
-state file shape documented under "State file" to:
+Under "State file", change the documented shape to:
 
 ```json
 { "1234": { "backend": "herdr", "id": "<WT_ID or empty>", "path": "/abs/path/inquest-1234" } }
@@ -320,64 +379,62 @@ Read `backend`, `id` and `path` from the map. Keep the existing ordering
 rule: delete the map entry **before** the archive call, because archiving
 can close the surface the caller is running in.
 
-```markdown
-**supacode** — `supacode worktree archive -w "$WT_ID"`
-**herdr**    — `herdr worktree remove --workspace "$WT_ID" --force`
-**git**      — `git worktree remove "$WT_PATH" --force` then
-               `git branch -D inquest/<N>`
+```
+supacode — supacode worktree archive -w "$WT_ID"
+herdr    — herdr worktree remove --workspace "$WT_ID" --force
+git      — git worktree remove "$WT_PATH" --force
+           git branch -D inquest/<N>
 ```
 
-When the map has no entry, fall back to the current backend's own list, and
-match on branch `inquest/<N>`. If nothing resolves, stop and report "no
-worktree for PR <N>".
+With no map entry, fall back to the current backend's own list and match on
+branch `inquest/<N>`. If nothing resolves, stop: "no worktree for PR <N>".
 
-- [ ] **Step 5: Update the skill description**
-
-The frontmatter still says "Supacode worktree". Rewrite it:
+- [ ] **Step 5: Rewrite the description**
 
 ```
 description: Provision or archive an isolated git worktree for a GitHub PR, through Supacode, herdr, or plain git — whichever is installed. Use when asked to "work on PR #N in isolation", spin up a worktree for a PR, or clean one up. `/bench <N>` provisions; `/bench --archive <N>` archives.
 ```
 
-- [ ] **Step 6: Verify the probe picks herdr on this machine**
+- [ ] **Step 6: Verify the probe**
 
 Run:
 ```bash
+unset BENCH_BACKEND
 if command -v supacode >/dev/null 2>&1; then echo supacode
-elif command -v herdr >/dev/null 2>&1; then echo herdr
-else echo git; fi
+elif command -v herdr >/dev/null 2>&1; then echo herdr; else echo git; fi
+BENCH_BACKEND=git bash -c 'echo "override=$BENCH_BACKEND"'
 ```
-Expected: `herdr`. Supacode is not installed here, so the herdr path is the
-one that gets live-tested in Task 10. The Supacode path stays unverified.
+Expected: `herdr`, then `override=git`. Supacode is not installed here, so
+the herdr path is the one Task 11 live-tests.
 
-- [ ] **Step 7: Verify the skill no longer assumes one backend**
+- [ ] **Step 7: Verify no unconditional supacode call survives**
 
-Run: `grep -c 'supacode' skills/bench/SKILL.md`
-Expected: every remaining hit sits inside a `BACKEND=supacode` branch or the
-description. No unconditional `supacode` command survives outside a branch.
+Run: `grep -n 'supacode' skills/bench/SKILL.md`
+Expected: every hit sits inside a `BACKEND=supacode` branch or the
+description.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add skills/bench && git commit -m "feat(bench): probe for supacode, herdr, then plain git
 
-The skill assumed Supacode. Supacode is not installed everywhere, so probe
-for a backend and record which one made the worktree, because the archive
-flow has to use the same one."
+The skill assumed Supacode, which is not installed everywhere. Probe for a
+backend, allow BENCH_BACKEND to override it, and record which backend made
+the worktree, because the archive flow has to use the same one."
 ```
 
 ---
 
-### Task 5: Port `razor-config.js` with the two behaviour changes
+### Task 6: Port `razor-config.js` as an on/off resolver
 
-This is the only file with real logic changes, so it is the only file with
-unit tests. Write the tests first.
+The only file with real logic changes, so the only file with unit tests.
+Write the tests first.
 
 **Files:**
-- Create: `hooks/razor-config.js` (copied from `tldr-config.js`, then changed)
+- Create: `hooks/razor-config.js`
 - Test: `tests/razor-config.test.js`
 
-- [ ] **Step 1: Copy the file**
+- [ ] **Step 1: Copy the source**
 
 ```bash
 cp ~/.dotfiles/claude/hooks/tldr-config.js ~/Work/optura/occam/hooks/razor-config.js
@@ -394,121 +451,108 @@ const os = require('os');
 const path = require('path');
 
 function freshConfig(env) {
-  for (const k of Object.keys(env)) process.env[k] = env[k];
+  for (const k of ['RAZOR_DEFAULT_MODE', 'XDG_CONFIG_HOME', 'CLAUDE_CONFIG_DIR']) delete process.env[k];
+  Object.assign(process.env, env);
   delete require.cache[require.resolve('../hooks/razor-config.js')];
   return require('../hooks/razor-config.js');
 }
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'razor-'));
 
-test('default mode is off when nothing is configured', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'razor-'));
-  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp, RAZOR_DEFAULT_MODE: '' });
-  delete process.env.RAZOR_DEFAULT_MODE;
-  assert.strictEqual(cfg.getDefaultMode(), 'off');
+test('off by default when nothing is configured', () => {
+  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp() });
+  assert.strictEqual(cfg.isEnabledByDefault(), false);
 });
 
-test('RAZOR_DEFAULT_MODE wins over the default', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'razor-'));
-  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp, RAZOR_DEFAULT_MODE: 'full' });
-  assert.strictEqual(cfg.getDefaultMode(), 'full');
+test('RAZOR_DEFAULT_MODE=on enables it', () => {
+  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp(), RAZOR_DEFAULT_MODE: 'on' });
+  assert.strictEqual(cfg.isEnabledByDefault(), true);
 });
 
-test('the config directory is named razor', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'razor-'));
-  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp });
-  assert.strictEqual(cfg.getConfigDir(), path.join(tmp, 'razor'));
+test('the config file enables it', () => {
+  const x = tmp();
+  fs.mkdirSync(path.join(x, 'razor'));
+  fs.writeFileSync(path.join(x, 'razor', 'config.json'), '{"enabled":true}');
+  const cfg = freshConfig({ XDG_CONFIG_HOME: x });
+  assert.strictEqual(cfg.isEnabledByDefault(), true);
+  assert.strictEqual(cfg.getConfigDir(), path.join(x, 'razor'));
 });
 
-test('migration renames a legacy flag and never overwrites', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'razor-home-'));
-  const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'razor-xdg-'));
-  fs.writeFileSync(path.join(home, '.tldr-active'), 'full');
-  fs.mkdirSync(path.join(xdg, 'tldr'), { recursive: true });
-  fs.writeFileSync(path.join(xdg, 'tldr', 'config.json'), '{"defaultMode":"full"}');
+test('the flag file round-trips and rejects junk', () => {
+  const home = tmp();
+  const cfg = freshConfig({ XDG_CONFIG_HOME: tmp(), CLAUDE_CONFIG_DIR: home });
+  const flag = path.join(home, '.razor-active');
 
-  const cfg = freshConfig({ CLAUDE_CONFIG_DIR: home, XDG_CONFIG_HOME: xdg });
-  cfg.migrateLegacyState();
+  assert.strictEqual(cfg.isActive(flag), false);
+  cfg.safeWriteFlag(flag, 'on');
+  assert.strictEqual(cfg.isActive(flag), true);
 
-  assert.strictEqual(fs.readFileSync(path.join(home, '.razor-active'), 'utf8'), 'full');
-  assert.ok(!fs.existsSync(path.join(home, '.tldr-active')));
-  assert.ok(fs.existsSync(path.join(xdg, 'razor', 'config.json')));
-
-  // A second legacy file must not clobber an existing new file.
-  fs.writeFileSync(path.join(home, '.tldr-active'), 'lite');
-  cfg.migrateLegacyState();
-  assert.strictEqual(fs.readFileSync(path.join(home, '.razor-active'), 'utf8'), 'full');
+  fs.writeFileSync(flag, 'full');
+  assert.strictEqual(cfg.isActive(flag), false);
 });
 ```
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
 Run: `cd ~/Work/optura/occam && node --test tests/`
-Expected: FAIL. `getConfigDir` returns a `tldr` path, the default is `full`,
-and `migrateLegacyState` is not a function.
+Expected: FAIL. `isEnabledByDefault` and `isActive` are not functions, and
+`getConfigDir` returns a `tldr` path.
 
-- [ ] **Step 4: Make the three changes**
+- [ ] **Step 4: Make the changes**
 
-In `hooks/razor-config.js`:
-
-1. Replace every `'tldr'` directory segment in `getConfigDir()` with
-   `'razor'` (three places: XDG, Windows, POSIX fallback).
-2. In `getDefaultMode()`, read `process.env.RAZOR_DEFAULT_MODE` instead of
-   `TLDR_DEFAULT_MODE`, and change the final `return 'full';` to
-   `return 'off';`.
-3. Update the header comment block to match.
-
-- [ ] **Step 5: Add `migrateLegacyState()`**
+1. `getConfigDir()` — replace all three `'tldr'` segments with `'razor'`.
+2. Delete `VALID_MODES`.
+3. Replace `getDefaultMode()` with:
 
 ```js
-// One-time rename of pre-occam state. Runs on SessionStart. Never overwrites.
-function legacyConfigDir() {
-  if (process.env.XDG_CONFIG_HOME) return path.join(process.env.XDG_CONFIG_HOME, 'tldr');
-  if (process.platform === 'win32') {
-    return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'tldr');
-  }
-  return path.join(os.homedir(), '.config', 'tldr');
-}
-
-function migrateLegacyState() {
-  const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-  const pairs = [
-    [path.join(claudeDir, '.tldr-active'), path.join(claudeDir, '.razor-active')],
-    [path.join(claudeDir, '.tldr-history.jsonl'), path.join(claudeDir, '.razor-history.jsonl')],
-    [path.join(claudeDir, '.tldr-statusline-suffix'), path.join(claudeDir, '.razor-statusline-suffix')],
-    [legacyConfigDir(), getConfigDir()],
-  ];
-  for (const [from, to] of pairs) {
-    try {
-      if (!fs.existsSync(from) || fs.existsSync(to)) continue;
-      fs.mkdirSync(path.dirname(to), { recursive: true });
-      fs.renameSync(from, to);
-    } catch (e) { /* silent — a failed migration must never break the session */ }
+function isEnabledByDefault() {
+  if ((process.env.RAZOR_DEFAULT_MODE || '').toLowerCase() === 'on') return true;
+  try {
+    return JSON.parse(fs.readFileSync(getConfigPath(), 'utf8')).enabled === true;
+  } catch (e) {
+    return false;
   }
 }
 ```
 
-Add `migrateLegacyState` to `module.exports`.
+4. Replace `readFlag()` with `isActive()`. Keep every symlink and size guard
+   the original had; change only the final validation:
 
-- [ ] **Step 6: Run the tests to verify they pass**
+```js
+    const raw = out.trim().toLowerCase();
+    return raw === 'on';
+```
+
+   and make the guard failures `return false` instead of `return null`.
+5. Delete `appendFlag` and `readHistory`. Nothing else uses them once
+   statistics are gone.
+6. `TLDR_DEBUG` → `RAZOR_DEBUG`, `[tldr]` → `[razor]`, and update the header
+   comment.
+7. New exports:
+
+```js
+module.exports = { isEnabledByDefault, getConfigDir, getConfigPath, safeWriteFlag, isActive };
+```
+
+- [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `cd ~/Work/optura/occam && node --test tests/`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add hooks/razor-config.js tests && git commit -m "feat: port the config resolver, default the mode to off
+git add hooks/razor-config.js tests && git commit -m "feat: port the resolver as on/off, defaulting to off
 
 A plugin must not compress a teammate's output without asking, so the
-fallback mode becomes off. Add a one-time migration that renames the
-pre-occam state files, so existing token statistics survive the rename."
+fallback is off. Levels and the statistics helpers are deleted."
 ```
 
 ---
 
-### Task 6: Port the three remaining hooks
+### Task 7: Port the activation hook, the tracker and the badge
 
 **Files:**
-- Create: `hooks/razor-activate.js`, `hooks/razor-mode-tracker.js`, `hooks/razor-stats.js`, `hooks/razor-statusline.sh`
+- Create: `hooks/razor-activate.js`, `hooks/razor-mode-tracker.js`, `hooks/razor-statusline.sh`
 
 - [ ] **Step 1: Copy under the new names**
 
@@ -517,80 +561,167 @@ cd ~/Work/optura/occam
 D=~/.dotfiles/claude/hooks
 cp "$D/tldr-activate.js"     hooks/razor-activate.js
 cp "$D/tldr-mode-tracker.js" hooks/razor-mode-tracker.js
-cp "$D/tldr-stats.js"        hooks/razor-stats.js
 cp "$D/tldr-statusline.sh"   hooks/razor-statusline.sh
 chmod +x hooks/razor-statusline.sh
 ```
 
-- [ ] **Step 2: Rewrite the internals**
+Do **not** copy `tldr-stats.js`. It is deleted, not ported.
 
-In all four files:
-
-| Old | New |
-|---|---|
-| `require('./tldr-config')` | `require('./razor-config')` |
-| `.tldr-active` | `.razor-active` |
-| `.tldr-history.jsonl` | `.razor-history.jsonl` |
-| `.tldr-statusline-suffix` | `.razor-statusline-suffix` |
-| `TLDR_DEBUG` | `RAZOR_DEBUG` |
-| `TLDR MODE ACTIVE` | `RAZOR MODE ACTIVE` |
-| `[tldr]` log prefix | `[razor]` |
-| `'tldr'` in the skill path | `'razor'` |
-| `/tldr-` command prefix | `/razor-` |
-
-`razor-activate.js` reads the skill body at
-`path.join(__dirname, '..', 'skills', 'tldr', 'SKILL.md')`. Change `tldr` to
-`razor`. The relative path itself stays correct: `hooks/` and `skills/` are
-siblings inside the plugin.
-
-- [ ] **Step 3: Call the migration from the activation hook**
-
-In `hooks/razor-activate.js`, import and call it before anything else reads
-state:
+- [ ] **Step 2: Rewrite `razor-activate.js`**
 
 ```js
-const { getDefaultMode, safeWriteFlag, migrateLegacyState } = require('./razor-config');
+#!/usr/bin/env node
+// razor — Claude Code SessionStart activation hook
 
-migrateLegacyState();
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { isEnabledByDefault, safeWriteFlag } = require('./razor-config');
+
+const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const flagPath = path.join(claudeDir, '.razor-active');
+
+if (!isEnabledByDefault()) {
+  try { fs.unlinkSync(flagPath); } catch (e) {}
+  process.stdout.write('OK');
+  process.exit(0);
+}
+
+safeWriteFlag(flagPath, 'on');
+
+let body = '';
+try {
+  const raw = fs.readFileSync(path.join(__dirname, '..', 'skills', 'razor', 'SKILL.md'), 'utf8');
+  body = raw.replace(/^---[\s\S]*?---\s*/, '');
+} catch (e) { /* fall through */ }
+
+process.stdout.write(body ? 'RAZOR MODE ACTIVE\n\n' + body : 'RAZOR MODE ACTIVE');
 ```
 
-- [ ] **Step 4: Verify the hooks run standalone**
+The level-filtering `reduce` over the body is deleted with the levels. The
+relative path to `skills/` still resolves: `hooks/` and `skills/` are
+siblings inside the plugin.
 
-Run:
+- [ ] **Step 3: Rewrite the matcher in `razor-mode-tracker.js`**
+
+Claude Code namespaces a plugin's skills, so the command arrives as
+`/occam:razor` as well as `/razor`. The old `startsWith('/tldr')` gate would
+never fire. Replace the whole command block with:
+
+```js
+const CMDS = new Set(['/razor', '/occam:razor', '/razor:razor']);
+const OFF_ARGS = new Set(['off', 'stop', 'disable']);
+
+const parts = prompt.split(/\s+/);
+if (CMDS.has(parts[0])) {
+  if (OFF_ARGS.has(parts[1] || '')) {
+    try { fs.unlinkSync(flagPath); } catch (e) {}
+  } else {
+    safeWriteFlag(flagPath, 'on');
+  }
+}
+```
+
+- [ ] **Step 4: Keep both trigger words in the regexes**
+
+The natural-language regexes must match `tldr` **and** `razor`, so the
+phrase the user already types keeps working. Change `\btldr\b` to
+`\b(?:tldr|razor)\b` in all four regexes (two on, two off). Everything the
+user sees still says razor only.
+
+- [ ] **Step 5: Rewrite the banner and the flag read**
+
+`readFlag` is gone. Use `isActive`:
+
+```js
+if (isActive(flagPath)) {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: "UserPromptSubmit",
+      additionalContext: "RAZOR MODE ACTIVE. " +
+        "Drop articles/filler/pleasantries/hedging. Fragments OK. " +
+        "Write in ASD-STE100 Simplified Technical English: one word one meaning, " +
+        "short common verbs, active voice, one instruction per sentence, max 20 words. " +
+        "Code/commits/security: write normal."
+    }
+  }));
+}
+```
+
+Delete `INDEPENDENT_MODES` and the `VALID_MODES` argument parsing.
+
+- [ ] **Step 6: Shrink `razor-statusline.sh` to the badge**
+
+```bash
+#!/bin/bash
+# razor — statusline badge fragment. Prints [RAZOR] when razor is on.
+# Designed to be appended to an existing statusline.
+
+FLAG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/.razor-active"
+
+[ -L "$FLAG" ] && exit 0
+[ -f "$FLAG" ] || exit 0
+[ "$(head -c 8 "$FLAG" 2>/dev/null | tr -d '\n\r')" = "on" ] || exit 0
+
+printf '\033[38;5;172m[RAZOR]\033[0m'
+```
+
+The savings suffix and `TLDR_STATUSLINE_SAVINGS` go with the statistics.
+
+- [ ] **Step 7: Verify the hooks standalone**
+
 ```bash
 cd ~/Work/optura/occam
-CLAUDE_CONFIG_DIR=$(mktemp -d) XDG_CONFIG_HOME=$(mktemp -d) node hooks/razor-activate.js
+C=$(mktemp -d); X=$(mktemp -d)
+CLAUDE_CONFIG_DIR=$C XDG_CONFIG_HOME=$X node hooks/razor-activate.js; echo
+CLAUDE_CONFIG_DIR=$C XDG_CONFIG_HOME=$X bash hooks/razor-statusline.sh; echo "[badge-off]"
+CLAUDE_CONFIG_DIR=$C XDG_CONFIG_HOME=$X RAZOR_DEFAULT_MODE=on node hooks/razor-activate.js | head -1
+CLAUDE_CONFIG_DIR=$C bash hooks/razor-statusline.sh; echo "[badge-on]"
 ```
-Expected: prints `OK` and exits 0. The default is `off`, so no skill body
-is printed.
+Expected: `OK`, then nothing before `[badge-off]`, then `RAZOR MODE ACTIVE`,
+then `[RAZOR]` before `[badge-on]`.
 
-Run:
-```bash
-CLAUDE_CONFIG_DIR=$(mktemp -d) XDG_CONFIG_HOME=$(mktemp -d) RAZOR_DEFAULT_MODE=full \
-  node hooks/razor-activate.js | head -3
-```
-Expected: output begins `RAZOR MODE ACTIVE`.
-
-- [ ] **Step 5: Verify nothing still says tldr**
-
-Run: `cd ~/Work/optura/occam && grep -rn 'tldr\|TLDR' hooks/`
-Expected: only the legacy path strings inside `razor-config.js`'s
-`migrateLegacyState` and `legacyConfigDir`. Nothing else.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Verify the tracker on both command forms and both words**
 
 ```bash
-git add hooks && git commit -m "feat: port the activation, tracker, stats and statusline hooks"
+C=$(mktemp -d)
+for p in '/razor' '/occam:razor' 'switch to tldr mode' 'razor mode please'; do
+  echo "{\"prompt\":\"$p\"}" | CLAUDE_CONFIG_DIR=$C XDG_CONFIG_HOME=$(mktemp -d) \
+    node hooks/razor-mode-tracker.js >/dev/null
+  printf '%-22s -> %s\n' "$p" "$(cat $C/.razor-active 2>/dev/null || echo MISSING)"
+  rm -f $C/.razor-active
+done
+echo '{"prompt":"/razor off"}' | CLAUDE_CONFIG_DIR=$C node hooks/razor-mode-tracker.js >/dev/null
+ls $C/.razor-active 2>&1 | tail -1
+```
+Expected: all four prompts print `on`; the last line reports the flag is
+gone.
+
+- [ ] **Step 9: Verify nothing still says tldr outside the regexes**
+
+Run: `grep -rn 'tldr\|TLDR' hooks/`
+Expected: only the `(?:tldr|razor)` alternations in the tracker.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add hooks && git commit -m "feat: port the activation hook, the tracker and the badge
+
+The tracker accepts the namespaced /occam:razor form, and its plain-English
+regexes accept both tldr and razor so the phrase already in use keeps
+working. Everything the user sees says razor."
 ```
 
 ---
 
-### Task 7: Wire the hooks and the command
+### Task 8: Wire the hooks
 
 **Files:**
-- Create: `hooks/hooks.json`, `commands/razor-stats.md`
+- Create: `hooks/hooks.json`
 
-- [ ] **Step 1: Write `hooks/hooks.json`**
+- [ ] **Step 1: Write it**
+
+Two events. There is no `Stop` hook, because statistics are gone.
 
 ```json
 {
@@ -609,54 +740,33 @@ git add hooks && git commit -m "feat: port the activation, tracker, stats and st
           { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/razor-mode-tracker.js\"" }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/razor-stats.js\" --refresh" }
-        ]
-      }
     ]
   }
 }
 ```
 
-- [ ] **Step 2: Write `commands/razor-stats.md`**
+- [ ] **Step 2: Verify it parses**
 
-```markdown
----
-description: Razor token usage + savings (--share | --all | --since 7d)
-argument-hint: [--share|--all|--since 7d]
-allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/hooks/razor-stats.js:*)
----
-
-!`node ${CLAUDE_PLUGIN_ROOT}/hooks/razor-stats.js $ARGUMENTS`
-
-Echo the bash output above verbatim inside a fenced code block. No commentary, no summary, no extra prose — just the code block.
-```
-
-- [ ] **Step 3: Verify the JSON parses**
-
-Run: `cd ~/Work/optura/occam && node -e "JSON.parse(require('fs').readFileSync('hooks/hooks.json'));console.log('OK')"`
+Run: `node -e "JSON.parse(require('fs').readFileSync('hooks/hooks.json'));console.log('OK')"`
 Expected: `OK`
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add hooks/hooks.json commands && git commit -m "feat: wire the three hooks and the /razor-stats command"
+git add hooks/hooks.json && git commit -m "feat: wire the two hooks"
 ```
 
 ---
 
-### Task 8: Statusline installer
-
-A plugin cannot set `statusLine`, and the installed plugin path carries a
-version that changes on upgrade. The script resolves the path at run time.
+### Task 9: Statusline installer
 
 **Files:**
 - Create: `scripts/install-statusline.sh`
 
-- [ ] **Step 1: Write the script**
+- [ ] **Step 1: Write it**
+
+The backup is taken **after** the refusal check, so a refused run leaves no
+stray `.bak`. Both plugin layouts are searched.
 
 ```bash
 #!/usr/bin/env bash
@@ -668,7 +778,9 @@ CFG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 SETTINGS="$CFG_DIR/settings.json"
 
 SL=$(ls -d "$CFG_DIR"/plugins/cache/occam/occam/*/hooks/razor-statusline.sh 2>/dev/null | sort -V | tail -1 || true)
-[ -z "$SL" ] && SL=$(ls -d "$CFG_DIR"/plugins/marketplaces/occam/hooks/razor-statusline.sh 2>/dev/null | head -1 || true)
+if [ -z "$SL" ]; then
+  SL=$(ls -d "$CFG_DIR"/plugins/marketplaces/occam/hooks/razor-statusline.sh 2>/dev/null | head -1 || true)
+fi
 
 if [ -z "$SL" ]; then
   echo "razor-statusline.sh not found. Install the occam plugin first." >&2
@@ -676,7 +788,6 @@ if [ -z "$SL" ]; then
 fi
 
 [ -f "$SETTINGS" ] || echo '{}' > "$SETTINGS"
-cp "$SETTINGS" "$SETTINGS.bak"
 
 SL="$SL" node -e '
 const fs = require("fs");
@@ -687,36 +798,35 @@ if (s.statusLine) {
   console.error("Add this badge to your own script:  bash " + process.env.SL);
   process.exit(2);
 }
+fs.copyFileSync(p, p + ".bak");
 s.statusLine = { type: "command", command: "bash " + process.env.SL };
 fs.writeFileSync(p, JSON.stringify(s, null, 2) + "\n");
 console.log("statusLine set. Backup at " + p + ".bak");
 ' "$SETTINGS"
 ```
 
-- [ ] **Step 2: Verify the refusal path**
+- [ ] **Step 2: Verify the refusal path leaves no backup**
 
-Run:
 ```bash
 cd ~/Work/optura/occam && chmod +x scripts/install-statusline.sh
 T=$(mktemp -d); mkdir -p "$T/plugins/marketplaces/occam/hooks"
 cp hooks/razor-statusline.sh "$T/plugins/marketplaces/occam/hooks/"
 echo '{"statusLine":{"type":"command","command":"mine"}}' > "$T/settings.json"
 CLAUDE_CONFIG_DIR="$T" bash scripts/install-statusline.sh; echo "exit=$?"
+ls "$T"/settings.json.bak 2>&1 | tail -1
 ```
-Expected: the message `settings.json already has a statusLine. Left untouched.`
-and `exit=2`. The existing `statusLine` value is unchanged.
+Expected: the refusal message, `exit=2`, and **no** `.bak` file.
 
 - [ ] **Step 3: Verify the happy path**
 
-Run:
 ```bash
 T=$(mktemp -d); mkdir -p "$T/plugins/marketplaces/occam/hooks"
 cp hooks/razor-statusline.sh "$T/plugins/marketplaces/occam/hooks/"
 echo '{}' > "$T/settings.json"
 CLAUDE_CONFIG_DIR="$T" bash scripts/install-statusline.sh && cat "$T/settings.json"
 ```
-Expected: `statusLine set.` and the JSON holds a `statusLine.command` ending
-in `razor-statusline.sh`.
+Expected: `statusLine set.` and a `statusLine.command` ending in
+`razor-statusline.sh`.
 
 - [ ] **Step 4: Commit**
 
@@ -724,31 +834,35 @@ in `razor-statusline.sh`.
 git add scripts && git commit -m "feat: add the statusline installer
 
 A plugin cannot set the statusLine key, so ship a script that resolves the
-installed plugin path and writes it. It refuses to overwrite an existing
-statusline and prints the badge command instead."
+installed plugin path and writes it."
 ```
 
 ---
 
-### Task 9: README
+### Task 10: README
 
 **Files:**
 - Create: `README.md`
 
 - [ ] **Step 1: Write it**
 
-Sections, in this order:
-
 1. One-paragraph description.
 2. **Install** — the two `claude plugin` commands.
-3. **Commands** — a table of `/razor`, `/razor-stats`, `/scrutiny`,
-   `/inquest`, `/bench`, one line each.
-4. **Razor is off by default** — how to turn it on, all three ways.
+3. **Skills** — a table of `razor`, `scrutiny`, `inquest`, `bench`, one line
+   each. Note that Claude Code namespaces them, so both `/razor` and
+   `/occam:razor` work.
+4. **Razor is off by default** — the three ways to turn it on:
+   `/razor` in a session, `RAZOR_DEFAULT_MODE=on`, or
+   `~/.config/razor/config.json` with `{"enabled": true}`. `/razor off`
+   turns it off. Saying "tldr mode" still works.
 5. **Statusline (optional)** — run `scripts/install-statusline.sh`, and what
    to do when you already have a statusline.
-6. **Upgrading from the dotfiles version** — the state files migrate
-   automatically on the first session; `RAZOR_DEFAULT_MODE` replaces
-   `TLDR_DEFAULT_MODE`.
+6. **Coming from the dotfiles version** — nothing migrates. Delete
+   `~/.claude/.tldr-active`, `.tldr-history.jsonl` and
+   `.tldr-statusline-suffix` by hand if you want them gone. Intensity levels
+   and `/tldr-stats` no longer exist. `RAZOR_DEFAULT_MODE` replaces
+   `TLDR_DEFAULT_MODE`. A sticky already posted by the old `pr-review` is not
+   recognised by `inquest`, so a re-review posts a second one.
 7. **Optional dependency** — `inquest` uses the Codex companion when it is
    installed and records `skipped` when it is not.
 
@@ -761,158 +875,205 @@ git push -u origin main
 
 ---
 
-### Task 10: Install and verify end to end
+### Task 11: Isolate the old install, then verify
 
-Nothing gets deleted from the dotfiles until every check here passes.
+The dotfiles copies are still live at this point. Their hooks fire and their
+skills are still discoverable, so `tldr` and `razor` would both answer with
+near-identical descriptions. That defeats Step 7, the one check that exists
+to catch a missed cross-reference. Take the old install out of the way first.
 
-- [ ] **Step 1: Install from the remote**
+- [ ] **Step 1: Disable the old hooks and hide the old skills**
+
+```bash
+cp ~/.claude/settings.json ~/.claude/settings.json.pre-occam
+node -e '
+const fs=require("fs"), p=process.env.HOME+"/.claude/settings.json";
+const s=JSON.parse(fs.readFileSync(p,"utf8"));
+for (const ev of Object.keys(s.hooks||{})) {
+  for (const m of s.hooks[ev]) {
+    m.hooks = (m.hooks||[]).filter(h => !/tldr-(activate|mode-tracker|stats)\.js/.test(h.command||""));
+  }
+}
+fs.writeFileSync(p, JSON.stringify(s,null,2)+"\n");
+console.log("tldr hooks removed from settings.json");
+'
+mkdir -p /tmp/occam-hidden
+for s in tldr local-review pr-review pr-worktree; do
+  mv ~/.dotfiles/claude/skills/$s /tmp/occam-hidden/ 2>/dev/null || true
+done
+ls ~/.claude/skills/
+```
+Expected: the four are gone from the listing. They are moved, not deleted;
+Task 12 makes it permanent, and a failed verification puts them back with
+`mv /tmp/occam-hidden/* ~/.dotfiles/claude/skills/`.
+
+- [ ] **Step 2: Install from the remote**
 
 ```bash
 claude plugin marketplace add darius-optura/occam
 claude plugin install occam@occam
 ```
 
-- [ ] **Step 2: Verify the skills are discovered**
+- [ ] **Step 3: Verify discovery**
 
-Start a new Claude Code session. Confirm `razor`, `scrutiny`, `inquest` and
-`bench` appear in the skill list, and `/razor-stats` in the command list.
+Start a new session. Confirm `razor`, `scrutiny`, `inquest` and `bench`
+appear exactly once each, and no `tldr`, `local-review`, `pr-review` or
+`pr-worktree` appears. Note whether they list bare or namespaced.
 
-- [ ] **Step 3: Verify razor is off by default and the migration ran**
+- [ ] **Step 4: Verify off by default**
 
-The session start prints `OK`, not a skill body, on a machine with no
-`~/.config/razor/config.json`. Then check:
+The session start prints `OK`, not a skill body, because
+`~/.config/razor/config.json` does not exist yet. The statusline shows no
+`[RAZOR]` badge.
 
-```bash
-ls -la ~/.claude/.razor-history.jsonl ~/.config/razor/config.json
-ls ~/.claude/.tldr-history.jsonl 2>&1
-```
-Expected: the razor paths exist, the tldr path is gone.
+- [ ] **Step 5: Verify on, off, and the old phrase**
 
-**Warning:** confirm `.razor-history.jsonl` is roughly 162 KB before you go
-on. If it is missing or empty, the statistics were lost. Stop and restore
-from `~/.claude/.tldr-history.jsonl` before continuing.
+Run `/razor`. Expected: the banner reads `RAZOR MODE ACTIVE` and the badge
+appears. Type `tldr mode` in plain English in a fresh session — expected: it
+also turns on. Run `/razor off`. Expected: banner and badge both go.
 
-- [ ] **Step 4: Verify razor turns on**
+- [ ] **Step 6: Verify scrutiny**
 
-Run `/razor` in a session. Expected: the banner reads `RAZOR MODE ACTIVE`.
-Then run `/razor-stats`. Expected: it reports the migrated history, not zero.
+Run `/scrutiny` against a working tree with uncommitted changes. Expected: a
+scored review printed to the terminal, nothing posted anywhere.
 
-- [ ] **Step 5: Verify scrutiny**
+- [ ] **Step 7: Verify inquest against a throwaway PR**
 
-Run `/scrutiny` against a working tree that has uncommitted changes.
-Expected: a scored review printed to the terminal, nothing posted anywhere.
+The step this plan exists for. Open a small throwaway PR and run
+`/inquest <N>`.
 
-- [ ] **Step 6: Verify inquest against a throwaway PR**
+Expected: `bench` prints `backend=herdr`; the branch is `inquest/<N>`;
+inline threads and one sticky are posted; the sticky carries
+`<!-- inquest:sticky -->`; the validator prints `OK`; a score out of 10 is
+printed. Then run `/bench --archive <N>` and confirm the workspace closes
+and the map entry is gone.
 
-This is the step the plan exists for. `inquest` is the largest skill and the
-only one that writes to GitHub, so a missed reference fails here, not at
-install time. Open a small throwaway PR and run `/inquest <N>`.
+- [ ] **Step 8: Verify the plain-git backend**
 
-Expected: it provisions a worktree through `bench`, posts inline threads and
-one sticky summary, prints a score out of 10, and the sticky validator
-prints `OK`. Confirm `bench` printed `backend=herdr`, and that the worktree
-branch is named `inquest/<N>`.
-
-Then archive it: `/bench --archive <N>`. Confirm the workspace closes and
-the map entry is gone.
-
-- [ ] **Step 6b: Verify the plain git backend**
-
-The herdr path is the only one this machine exercises by default. Force the
-fallback and confirm it works, because a teammate may have neither tool:
+Use the override, not a stripped `PATH` — `gh` lives in
+`/opt/homebrew/bin`, so trimming `PATH` breaks the flow before it reaches
+the backend.
 
 ```bash
-env PATH=/usr/bin:/bin bash -c 'command -v supacode || command -v herdr || echo git'
+BENCH_BACKEND=git   # then run /bench <N>
 ```
-Expected: `git`. Then run `/bench <N>` once with that reduced `PATH` and
-confirm it creates `.claude/worktrees/<owner>/inquest-<N>` and that
+Expected: it creates `.claude/worktrees/<owner>/inquest-<N>`, and
 `/bench --archive <N>` removes it and deletes branch `inquest/<N>`.
 
-- [ ] **Step 7: Verify inquest without Codex**
+- [ ] **Step 9: Verify inquest without Codex**
 
-Run `/inquest` once with the Codex CLI unavailable (`PATH` without `codex`).
-Expected: it completes and the sticky's Codex line reads
-`skipped — codex CLI not installed`. A silent skip is a failure.
+Run `/inquest` once with the Codex CLI unavailable. Expected: it completes
+and the sticky's Codex line reads `skipped — codex CLI not installed`. A
+silent skip is a failure.
 
 ---
 
-### Task 11: Strip the dotfiles repo
+### Task 12: Strip the dotfiles repo
 
-Only after Task 10 passes.
+Only after Task 11 passes. If it did not, restore first:
+`mv /tmp/occam-hidden/* ~/.dotfiles/claude/skills/` and
+`cp ~/.claude/settings.json.pre-occam ~/.claude/settings.json`.
 
 **Files:**
-- Delete: `claude/skills/{tldr,local-review,pr-review,pr-worktree}`, `claude/hooks/tldr-*.{js,sh}`, `claude/commands/tldr-stats.md`
+- Delete: the four skill dirs, five hooks, one command
 - Modify: `claude/settings.json.template`, `scripts/claude-statusline.sh`, `AGENTS.md`
 
 - [ ] **Step 1: Delete the moved files**
 
+Task 11 Step 1 already moved the skill directories aside, so git sees them
+as deleted.
+
 ```bash
 cd ~/.dotfiles
-git rm -r claude/skills/tldr claude/skills/local-review \
-          claude/skills/pr-review claude/skills/pr-worktree
+git rm -r --cached claude/skills/tldr claude/skills/local-review \
+                   claude/skills/pr-review claude/skills/pr-worktree
 git rm claude/hooks/tldr-activate.js claude/hooks/tldr-mode-tracker.js \
        claude/hooks/tldr-stats.js claude/hooks/tldr-config.js \
        claude/hooks/tldr-statusline.sh claude/commands/tldr-stats.md
+rm -rf /tmp/occam-hidden
 ```
 
 - [ ] **Step 2: Update `claude/settings.json.template`**
 
-Remove the `node __HOME__/.claude/hooks/tldr-activate.js` entry from
-`SessionStart` and the `tldr-mode-tracker.js` entry from `UserPromptSubmit`.
-Leave `flow-breaker nudge` and `remote-control-keepawake.sh` in place. Add
-`"occam@occam": true` to `enabledPlugins`.
+Delete the `node __HOME__/.claude/hooks/tldr-activate.js` entry from
+`SessionStart` and the `tldr-mode-tracker.js` entry from `UserPromptSubmit`
+— two entries, not three. Leave `flow-breaker nudge` and
+`remote-control-keepawake.sh`. Add `"occam@occam": true` to `enabledPlugins`
+and the occam marketplace to `extraKnownMarketplaces`.
 
-- [ ] **Step 3: Fix the statusline badge**
+- [ ] **Step 3: Fix the badge in `scripts/claude-statusline.sh`**
 
-`scripts/claude-statusline.sh:150` calls a file that no longer exists.
-Replace the badge block with a resolver:
+Lines 148–153 call a file that no longer exists. Both plugin layouts are
+searched, matching the installer.
 
 ```bash
 # ── razor badge ──────────────────────────────────────────────────────────────
 razor_sl=$(ls -d "${HOME}"/.claude/plugins/cache/occam/occam/*/hooks/razor-statusline.sh 2>/dev/null | sort -V | tail -1)
+[ -z "$razor_sl" ] && razor_sl=$(ls -d "${HOME}"/.claude/plugins/marketplaces/occam/hooks/razor-statusline.sh 2>/dev/null | head -1)
 if [ -n "$razor_sl" ]; then
   razor_badge=$(bash "$razor_sl" 2>/dev/null)
   [ -n "$razor_badge" ] && parts+=("$razor_badge")
 fi
 ```
 
-- [ ] **Step 4: Keep this machine in compressed mode**
+- [ ] **Step 4: Keep this machine compressed**
 
-The plugin defaults to `off`. This machine wants `full`:
+The plugin defaults to off. Read-modify-write, so an existing config keeps
+its other keys.
 
 ```bash
 mkdir -p ~/.config/razor
-echo '{"defaultMode":"full"}' > ~/.config/razor/config.json
+node -e '
+const fs=require("fs"), p=process.env.HOME+"/.config/razor/config.json";
+let c={}; try { c=JSON.parse(fs.readFileSync(p,"utf8")); } catch(e){}
+c.enabled=true;
+fs.writeFileSync(p, JSON.stringify(c,null,2)+"\n");
+console.log(fs.readFileSync(p,"utf8"));
+'
 ```
 
 - [ ] **Step 5: Note the move in `AGENTS.md`**
 
-One line: the `razor`, `scrutiny`, `inquest` and `bench` skills live in
+One line: `razor`, `scrutiny`, `inquest` and `bench` live in
 `darius-optura/occam` and install as the `occam` plugin. They are no longer
 symlinked from this repo.
 
-- [ ] **Step 6: Verify the dotfiles install still works**
+- [ ] **Step 6: Verify the install still works**
 
-Run: `cd ~/.dotfiles && ./install.sh --dry-run 2>&1 | tail -20`
-Expected: no error about a missing `tldr-*` file. `install.sh` symlinks the
-`skills`, `hooks` and `commands` directories as a whole, so it needs no edit.
+```bash
+cd ~/.dotfiles && ./install.sh --dry-run 2>&1 | tail -20
+```
+Expected: no error about a missing `tldr-*` file.
 
-Run: `bash scripts/claude-statusline.sh` in a session that has the plugin.
-Expected: the razor badge appears, exactly as before the move.
+- [ ] **Step 7: Verify the badge survived the move**
 
-- [ ] **Step 7: Verify the remaining skills survived**
+```bash
+bash scripts/claude-statusline.sh; echo
+```
+Expected: with razor on, the line ends in `[RAZOR]`, exactly as before.
 
-Run: `ls ~/.claude/skills/`
+- [ ] **Step 8: Verify the remaining skills**
+
+```bash
+ls ~/.claude/skills/
+```
 Expected: `commit`, `diagnose`, `flow-breaker`, `gh-stack`, `supacode-cli`,
-`supacode-deeplinks`. No `tldr`, no review skills.
+`supacode-deeplinks`. Nothing else.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Clean up the verification backup**
+
+```bash
+rm -f ~/.claude/settings.json.pre-occam
+```
+
+- [ ] **Step 10: Commit**
 
 ```bash
 git add -A claude scripts AGENTS.md
 git commit -m "refactor(claude): move four skills into the occam plugin
 
 The razor, scrutiny, inquest and bench skills now install from
-darius-optura/occam instead of the symlink install. The statusline
-resolves the badge script inside the installed plugin."
+darius-optura/occam instead of the symlink install. Intensity levels and
+token statistics are gone rather than moved. The statusline resolves the
+badge script inside the installed plugin."
 ```
