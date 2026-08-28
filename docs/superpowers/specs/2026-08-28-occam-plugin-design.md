@@ -2,6 +2,7 @@
 
 Date: 2026-08-28
 Status: Approved, ready for an implementation plan
+Repo: git@github.com:darius-optura/occam.git, cloned empty at ~/Work/optura/occam
 
 ## Goal
 
@@ -16,7 +17,7 @@ Audience is a small team, not the public. The repo can stay private.
 | Question | Decision |
 |---|---|
 | Which skills | `tldr`, `local-review`, `pr-review`, plus `pr-worktree` because `pr-review` calls it |
-| Repo home | New dedicated repo, `<owner>/occam` |
+| Repo home | New dedicated repo, `darius-optura/occam` |
 | Migration | Move the files. Dotfiles installs the plugin like any teammate does |
 | Plugin count | One plugin, not two |
 | Name | Plugin and repo `occam`. Skills `razor`, `scrutiny`, `inquest`, `bench` |
@@ -62,7 +63,7 @@ occam/
 ```json
 {
   "name": "occam",
-  "owner": { "name": "<owner>" },
+  "owner": { "name": "darius-optura" },
   "metadata": { "description": "Terse output, adversarial review.", "version": "1.0.0" },
   "plugins": [
     { "name": "occam", "description": "...", "version": "1.0.0", "source": "./" }
@@ -73,7 +74,7 @@ occam/
 Install:
 
 ```
-claude plugin marketplace add <owner>/occam
+claude plugin marketplace add darius-optura/occam
 claude plugin install occam@occam
 ```
 
