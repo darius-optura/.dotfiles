@@ -156,6 +156,27 @@ statistics reset to zero.
 The environment variable becomes `RAZOR_DEFAULT_MODE`. The old name is not
 read. Only this machine sets it, and the dotfiles change below updates it.
 
+## Change 4 — bench probes three worktree backends
+
+`pr-worktree` assumes Supacode. Supacode is not installed on this machine and
+a teammate may not have it either. `bench` must probe, in this order:
+
+1. `command -v supacode` → Supacode backend. Existing flow, unchanged.
+2. `command -v herdr` → herdr backend. `herdr worktree create|list|remove`,
+   which speak JSON over the socket API.
+3. Neither → plain `git worktree add`. No workspace manager, no id to track.
+
+The probe runs once per invocation. The chosen backend is recorded in the
+state file, because `--archive` must use the same backend that created the
+worktree:
+
+```json
+{ "1234": { "backend": "herdr", "id": "<workspace-id>", "path": "/abs/path/inquest-1234" } }
+```
+
+Only the herdr and plain-git paths can be tested on this machine. The
+Supacode path stays as written and stays unverified.
+
 ## Dotfiles changes
 
 1. Delete the four skill directories, the five hook files and `tldr-stats.md`.

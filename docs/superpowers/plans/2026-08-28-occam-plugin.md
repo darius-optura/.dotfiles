@@ -26,7 +26,7 @@ Files created in `~/Work/optura/occam`:
 | `skills/inquest/reference.md` | Command mechanics §1–§8 |
 | `skills/inquest/sticky-template.md` | Sticky summary template |
 | `skills/inquest/check-sticky.sh` | Sticky validator |
-| `skills/bench/SKILL.md` | Worktree lifecycle for a PR |
+| `skills/bench/SKILL.md` | Worktree lifecycle for a PR, over supacode, herdr or plain git |
 | `commands/razor-stats.md` | `/razor-stats` slash command |
 | `hooks/hooks.json` | Event wiring |
 | `hooks/razor-config.js` | Mode resolution, state paths, legacy migration |
@@ -126,7 +126,7 @@ git commit -m "feat: scaffold the occam plugin manifests"
 
 ### Task 2: Copy and rename the four skills
 
-Copy, do not move. The dotfiles copies stay until Task 9 proves the plugin works.
+Copy, do not move. The dotfiles copies stay until Task 10 proves the plugin works.
 
 **Files:**
 - Create: `skills/razor/SKILL.md`, `skills/scrutiny/SKILL.md`, `skills/inquest/{SKILL.md,reference.md,sticky-template.md,check-sticky.sh}`, `skills/bench/SKILL.md`
@@ -232,7 +232,143 @@ git add skills && git commit -m "refactor: rename the skill cross-references"
 
 ---
 
-### Task 4: Port `razor-config.js` with the two behaviour changes
+### Task 4: Give `bench` three worktree backends
+
+`bench` currently assumes Supacode. Supacode is not on this machine, and a
+teammate may not have it. Probe for a backend instead of assuming one.
+
+**Files:**
+- Modify: `skills/bench/SKILL.md`
+
+- [ ] **Step 1: Add the backend probe to the top of the provision flow**
+
+Insert this section before "Provision flow". It runs once per invocation.
+
+```markdown
+## Backend
+
+Resolve `BACKEND` first. Do not assume one is present.
+
+```bash
+if command -v supacode >/dev/null 2>&1; then BACKEND=supacode
+elif command -v herdr  >/dev/null 2>&1; then BACKEND=herdr
+else BACKEND=git
+fi
+echo "backend=$BACKEND"
+```
+
+Print the result. A silent choice hides why a later command failed.
+```
+
+- [ ] **Step 2: Rewrite provision step 4 as a branch over the three backends**
+
+Steps 1–3 of the provision flow (resolve the PR, fetch the head, delete a
+stale branch) are backend-independent and stay as they are. Replace step 4
+and step 5 with:
+
+```markdown
+4. Create the worktree with the resolved backend.
+
+   **supacode** — capture the printed ID in the same call that creates the
+   worktree, per the Supacode ID-tracking rule:
+   ```bash
+   WT_ID=$(supacode repo worktree-new --branch inquest/<N> --name inquest-<N> --base "$SHA" | tail -n1)
+   ```
+
+   **herdr** — `herdr worktree create` prints JSON. Ask for no focus, so
+   provisioning never steals the user's current pane:
+   ```bash
+   OUT=$(herdr worktree create --cwd "$MAIN_ROOT" --branch inquest/<N> \
+           --base "$SHA" --label inquest-<N> --no-focus)
+   echo "$OUT"
+   ```
+   Read `WT_PATH` and `WT_ID` out of that JSON. If the shape is not what you
+   expect, do not guess — resolve both from the list instead:
+   ```bash
+   herdr worktree list --cwd "$MAIN_ROOT" \
+     | jq -r --arg b "inquest/<N>" '.result.worktrees[] | select(.branch==$b) | .path, .open_workspace_id'
+   ```
+   `open_workspace_id` is the value `herdr worktree remove --workspace` takes.
+
+   **git** — no workspace manager, so there is no ID. `<owner>` is
+   `headRepositoryOwner` from step 1:
+   ```bash
+   WT_PATH="$MAIN_ROOT/.claude/worktrees/<owner>/inquest-<N>"
+   git worktree add "$WT_PATH" "$SHA"
+   ```
+
+5. Confirm `WT_PATH` exists and holds the PR's head SHA:
+   ```bash
+   git -C "$WT_PATH" rev-parse HEAD    # must equal $SHA
+   ```
+```
+
+- [ ] **Step 3: Record the backend in the state file**
+
+The archive flow must use the backend that created the worktree. Change the
+state file shape documented under "State file" to:
+
+```json
+{ "1234": { "backend": "herdr", "id": "<WT_ID or empty>", "path": "/abs/path/inquest-1234" } }
+```
+
+`backend` is required. `id` is empty for the `git` backend.
+
+- [ ] **Step 4: Rewrite the archive flow as the same three-way branch**
+
+Read `backend`, `id` and `path` from the map. Keep the existing ordering
+rule: delete the map entry **before** the archive call, because archiving
+can close the surface the caller is running in.
+
+```markdown
+**supacode** — `supacode worktree archive -w "$WT_ID"`
+**herdr**    — `herdr worktree remove --workspace "$WT_ID" --force`
+**git**      — `git worktree remove "$WT_PATH" --force` then
+               `git branch -D inquest/<N>`
+```
+
+When the map has no entry, fall back to the current backend's own list, and
+match on branch `inquest/<N>`. If nothing resolves, stop and report "no
+worktree for PR <N>".
+
+- [ ] **Step 5: Update the skill description**
+
+The frontmatter still says "Supacode worktree". Rewrite it:
+
+```
+description: Provision or archive an isolated git worktree for a GitHub PR, through Supacode, herdr, or plain git — whichever is installed. Use when asked to "work on PR #N in isolation", spin up a worktree for a PR, or clean one up. `/bench <N>` provisions; `/bench --archive <N>` archives.
+```
+
+- [ ] **Step 6: Verify the probe picks herdr on this machine**
+
+Run:
+```bash
+if command -v supacode >/dev/null 2>&1; then echo supacode
+elif command -v herdr >/dev/null 2>&1; then echo herdr
+else echo git; fi
+```
+Expected: `herdr`. Supacode is not installed here, so the herdr path is the
+one that gets live-tested in Task 10. The Supacode path stays unverified.
+
+- [ ] **Step 7: Verify the skill no longer assumes one backend**
+
+Run: `grep -c 'supacode' skills/bench/SKILL.md`
+Expected: every remaining hit sits inside a `BACKEND=supacode` branch or the
+description. No unconditional `supacode` command survives outside a branch.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add skills/bench && git commit -m "feat(bench): probe for supacode, herdr, then plain git
+
+The skill assumed Supacode. Supacode is not installed everywhere, so probe
+for a backend and record which one made the worktree, because the archive
+flow has to use the same one."
+```
+
+---
+
+### Task 5: Port `razor-config.js` with the two behaviour changes
 
 This is the only file with real logic changes, so it is the only file with
 unit tests. Write the tests first.
@@ -369,7 +505,7 @@ pre-occam state files, so existing token statistics survive the rename."
 
 ---
 
-### Task 5: Port the three remaining hooks
+### Task 6: Port the three remaining hooks
 
 **Files:**
 - Create: `hooks/razor-activate.js`, `hooks/razor-mode-tracker.js`, `hooks/razor-stats.js`, `hooks/razor-statusline.sh`
@@ -449,7 +585,7 @@ git add hooks && git commit -m "feat: port the activation, tracker, stats and st
 
 ---
 
-### Task 6: Wire the hooks and the command
+### Task 7: Wire the hooks and the command
 
 **Files:**
 - Create: `hooks/hooks.json`, `commands/razor-stats.md`
@@ -512,7 +648,7 @@ git add hooks/hooks.json commands && git commit -m "feat: wire the three hooks a
 
 ---
 
-### Task 7: Statusline installer
+### Task 8: Statusline installer
 
 A plugin cannot set `statusLine`, and the installed plugin path carries a
 version that changes on upgrade. The script resolves the path at run time.
@@ -594,7 +730,7 @@ statusline and prints the badge command instead."
 
 ---
 
-### Task 8: README
+### Task 9: README
 
 **Files:**
 - Create: `README.md`
@@ -625,7 +761,7 @@ git push -u origin main
 
 ---
 
-### Task 9: Install and verify end to end
+### Task 10: Install and verify end to end
 
 Nothing gets deleted from the dotfiles until every check here passes.
 
@@ -674,7 +810,23 @@ install time. Open a small throwaway PR and run `/inquest <N>`.
 
 Expected: it provisions a worktree through `bench`, posts inline threads and
 one sticky summary, prints a score out of 10, and the sticky validator
-prints `OK`. Confirm the worktree branch is named `inquest/<N>`.
+prints `OK`. Confirm `bench` printed `backend=herdr`, and that the worktree
+branch is named `inquest/<N>`.
+
+Then archive it: `/bench --archive <N>`. Confirm the workspace closes and
+the map entry is gone.
+
+- [ ] **Step 6b: Verify the plain git backend**
+
+The herdr path is the only one this machine exercises by default. Force the
+fallback and confirm it works, because a teammate may have neither tool:
+
+```bash
+env PATH=/usr/bin:/bin bash -c 'command -v supacode || command -v herdr || echo git'
+```
+Expected: `git`. Then run `/bench <N>` once with that reduced `PATH` and
+confirm it creates `.claude/worktrees/<owner>/inquest-<N>` and that
+`/bench --archive <N>` removes it and deletes branch `inquest/<N>`.
 
 - [ ] **Step 7: Verify inquest without Codex**
 
@@ -684,9 +836,9 @@ Expected: it completes and the sticky's Codex line reads
 
 ---
 
-### Task 10: Strip the dotfiles repo
+### Task 11: Strip the dotfiles repo
 
-Only after Task 9 passes.
+Only after Task 10 passes.
 
 **Files:**
 - Delete: `claude/skills/{tldr,local-review,pr-review,pr-worktree}`, `claude/hooks/tldr-*.{js,sh}`, `claude/commands/tldr-stats.md`
