@@ -210,7 +210,12 @@ Supports 4 themes with dark/light variants:
 - gruvbox: Dark / Light
 - cyberdream: Dark / Light
 
-Theme changes affect: Fish, Ghostty, Tmux, Bat, Starship, FZF, Neovim, OpenCode, macOS appearance.
+Theme changes affect: Fish, Ghostty, Tmux, Herdr, Bat, Starship, FZF, Neovim, OpenCode, Claude Code,
+macOS appearance.
+
+Herdr uses its built-in theme names for catppuccin, rose-pine and gruvbox. cyberdream and optura
+have no built-in match, so `update_herdr_theme()` writes a full `[theme.custom]` palette on top of
+the closest built-in base. The block sits under a marker at the end of `herdr/config.toml`.
 
 OpenCode themes use transparent backgrounds (`"none"`) to inherit terminal transparency.
 

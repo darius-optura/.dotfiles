@@ -484,6 +484,189 @@ update_claude_theme() {
     fi
 }
 
+# Update Herdr theme
+# herdr ships built-in themes for catppuccin, rose-pine and gruvbox (both
+# variants), so those map straight to a name. cyberdream and optura have no
+# built-in equivalent, so every color token is overridden in [theme.custom]
+# on top of the closest built-in base.
+# The [theme] block is regenerated below the marker at the end of config.toml.
+update_herdr_theme() {
+    local herdr_config="$CONFIG_DIR/herdr/config.toml"
+
+    if [[ ! -f "$herdr_config" ]]; then
+        return
+    fi
+
+    local base custom=""
+
+    case "$THEME-$VARIANT" in
+        catppuccin-dark)
+            base="catppuccin"
+            ;;
+        catppuccin-light)
+            base="catppuccin-latte"
+            ;;
+        rose-pine-dark)
+            base="rose-pine"
+            ;;
+        rose-pine-light)
+            base="rose-pine-dawn"
+            ;;
+        gruvbox-dark)
+            base="gruvbox"
+            ;;
+        gruvbox-light)
+            base="gruvbox-light"
+            ;;
+        cyberdream-dark)
+            base="catppuccin"
+            custom=$(cat <<'EOF'
+accent = "#5ef1ff"
+panel_bg = "#16181a"
+sidebar_bg = "#16181a"
+active_row_bg = "#1e2124"
+selection_bg = "#3c4048"
+surface0 = "#1e2124"
+surface1 = "#3c4048"
+surface_dim = "#1e2124"
+overlay0 = "#3c4048"
+overlay1 = "#7b8496"
+text = "#ffffff"
+subtext0 = "#7b8496"
+mauve = "#ff5ef1"
+green = "#5eff6c"
+yellow = "#f1ff5e"
+red = "#ff6e5e"
+blue = "#5ea1ff"
+teal = "#5ef1ff"
+peach = "#ffbd5e"
+EOF
+)
+            ;;
+        cyberdream-light)
+            base="catppuccin-latte"
+            custom=$(cat <<'EOF'
+accent = "#008c99"
+panel_bg = "#ffffff"
+sidebar_bg = "#ffffff"
+active_row_bg = "#eaeaea"
+selection_bg = "#acacac"
+surface0 = "#eaeaea"
+surface1 = "#acacac"
+surface_dim = "#eaeaea"
+overlay0 = "#acacac"
+overlay1 = "#7b8496"
+text = "#16181a"
+subtext0 = "#7b8496"
+mauve = "#d100bf"
+green = "#008b0c"
+yellow = "#997b00"
+red = "#d11500"
+blue = "#0057d1"
+teal = "#008c99"
+peach = "#d17c00"
+EOF
+)
+            ;;
+        optura-dark)
+            base="catppuccin"
+            custom=$(cat <<'EOF'
+accent = "#d0ae50"
+panel_bg = "#1a1616"
+sidebar_bg = "#1a1616"
+active_row_bg = "#211d1c"
+selection_bg = "#420d41"
+surface0 = "#262320"
+surface1 = "#332d2b"
+surface_dim = "#211d1c"
+overlay0 = "#3d3634"
+overlay1 = "#7a756a"
+text = "#f0eee4"
+subtext0 = "#a9a396"
+mauve = "#a86ab8"
+green = "#61c2ab"
+yellow = "#e6c876"
+red = "#c8595a"
+blue = "#d9ecf7"
+teal = "#7ed3c0"
+peach = "#d0ae50"
+EOF
+)
+            ;;
+        optura-light)
+            base="catppuccin-latte"
+            custom=$(cat <<'EOF'
+accent = "#8b6914"
+panel_bg = "#f0eee4"
+sidebar_bg = "#f0eee4"
+active_row_bg = "#e8e4dc"
+selection_bg = "#d9ecf7"
+surface0 = "#e8e4dc"
+surface1 = "#d6d0c2"
+surface_dim = "#e8e4dc"
+overlay0 = "#a9a396"
+overlay1 = "#7a756a"
+text = "#1a1616"
+subtext0 = "#56524a"
+mauve = "#7e3d8a"
+green = "#2a7d6a"
+yellow = "#8b6914"
+red = "#a33b3b"
+blue = "#202e42"
+teal = "#2a7d6a"
+peach = "#d0ae50"
+EOF
+)
+            ;;
+        *)
+            print_error "No Herdr theme mapping for $THEME ($VARIANT)"
+            return
+            ;;
+    esac
+
+    local marker="# BEGIN theme — managed by scripts/switch-theme.sh"
+    local tmp
+    tmp=$(mktemp)
+
+    awk -v m="$marker" '$0 == m { exit } { print }' "$herdr_config" > "$tmp"
+    {
+        echo "$marker"
+        echo "[theme]"
+        echo "name = \"$base\""
+        echo "auto_switch = false"
+        if [[ -n "$custom" ]]; then
+            echo ""
+            echo "[theme.custom]"
+            echo "$custom"
+        fi
+    } >> "$tmp"
+
+    # cat, not mv: config.toml is a symlink into the dotfiles repo.
+    cat "$tmp" > "$herdr_config"
+    rm -f "$tmp"
+
+    if [[ -n "$custom" ]]; then
+        print_success "Herdr theme updated to $THEME ($VARIANT) via $base + custom colors"
+    else
+        print_success "Herdr theme updated to $base"
+    fi
+
+    if command -v herdr >/dev/null 2>&1; then
+        # reload-config answers with JSON: status "applied", or "partial" plus a
+        # diagnostics list when it drops a key it does not know.
+        local reload
+        if reload=$(herdr server reload-config 2>/dev/null); then
+            if [[ "$reload" == *'"status":"applied"'* ]]; then
+                print_success "Herdr server reloaded config"
+            else
+                print_error "Herdr reload incomplete: $reload"
+            fi
+        else
+            print_info "Herdr not running — theme applies on next launch"
+        fi
+    fi
+}
+
 # Save theme preference
 save_theme_preference() {
     echo "$THEME $VARIANT" > "$HOME/.config/dotfiles-theme"
@@ -507,6 +690,7 @@ main() {
     update_fish_theme
     update_ghostty_theme
     update_tmux_theme
+    update_herdr_theme
     update_bat_theme
     update_starship_theme
     update_fzf_theme
@@ -521,6 +705,7 @@ main() {
     print_info "To apply changes:"
     echo "  • Restart your terminal or run: exec fish"
     echo "  • Reload tmux: tmux source ~/.config/tmux/tmux.conf"
+    echo "  • Herdr: reloaded live if running, else applies on next launch"
     echo "  • FZF colors will apply immediately in new shell sessions"
     echo "  • Neovim: Restart Neovim to see the new colorscheme"
     echo "  • OpenCode: Theme will apply on next launch"

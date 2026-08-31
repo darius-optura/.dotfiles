@@ -8,10 +8,20 @@ const { readFlag, appendFlag, readHistory, safeWriteFlag } = require('./tldr-con
 
 const COMPRESSION = { 'full': 0.65 };
 
+// Output $/1M tokens, Anthropic first-party rates (2026-06). Prefix match, first hit wins:
+// keep specific prefixes above generic ones.
 const MODEL_OUTPUT_PRICE_PER_M = [
-  ['claude-opus-4',     75.00],
-  ['claude-sonnet-4',   15.00],
-  ['claude-haiku-4',     4.00],
+  ['claude-fable-5',    50.00],
+  ['claude-mythos-5',   50.00],
+  ['claude-opus-5',     25.00],
+  ['claude-opus-4-8',   25.00],
+  ['claude-opus-4-7',   25.00],
+  ['claude-opus-4-6',   25.00],
+  ['claude-opus-4-5',   25.00],
+  ['claude-opus-4',     75.00],   // opus 4 / 4.1
+  ['claude-sonnet-5',   10.00],
+  ['claude-sonnet-4',   15.00],   // sonnet 4 / 4.5 / 4.6
+  ['claude-haiku-4',     5.00],
   ['claude-3-5-sonnet', 15.00],
   ['claude-3-5-haiku',   4.00],
   ['claude-3-opus',     75.00],

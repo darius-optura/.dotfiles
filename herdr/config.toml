@@ -24,10 +24,6 @@ focus_agent = "prefix+alt+1..9"
 # super+k / prefix+w still opens the workspace picker popup.
 workspaces = "ctrl+shift"
 
-[theme]
-name = "catppuccin"
-auto_switch = false
-
 # prefix+f -> fzf a project dir and open it as a workspace (herdr-sessionizer).
 # super+f already sends prefix+f from ghostty/config.
 [[keys.command]]
@@ -36,3 +32,29 @@ type = "popup"
 command = "herdr-sessionizer"
 width = "80%"
 height = "80%"
+
+# BEGIN theme — managed by scripts/switch-theme.sh
+[theme]
+name = "catppuccin"
+auto_switch = false
+
+[theme.custom]
+accent = "#5ef1ff"
+panel_bg = "#16181a"
+sidebar_bg = "#16181a"
+active_row_bg = "#1e2124"
+selection_bg = "#3c4048"
+surface0 = "#1e2124"
+surface1 = "#3c4048"
+surface_dim = "#1e2124"
+overlay0 = "#3c4048"
+overlay1 = "#7b8496"
+text = "#ffffff"
+subtext0 = "#7b8496"
+mauve = "#ff5ef1"
+green = "#5eff6c"
+yellow = "#f1ff5e"
+red = "#ff6e5e"
+blue = "#5ea1ff"
+teal = "#5ef1ff"
+peach = "#ffbd5e"

@@ -10,7 +10,7 @@ font-family = Hack Nerd Font Mono
 command = /Users/darius/.dotfiles/scripts/ghostty-shell
 
 shell-integration = fish
-theme = Rose Pine Moon
+theme = cyberdream
 window-decoration = false
 window-padding-x = 0
 window-padding-y = 0
@@ -45,7 +45,7 @@ keybind = super+t=text:\x02c
 keybind = super+shift+t=text:\x02!
 keybind = super+w=text:\x02x
 keybind = super+z=text:\x02z
-keybind = super+r=text:npm run dev:isolated\n
+keybind = super+r=text:INTENT_WORKTREE_SKIP_SEED=true npm run dev:isolated\n
 keybind = super+m=text:\x02m
 keybind = super+up=text:\x02k
 keybind = super+down=text:\x02j

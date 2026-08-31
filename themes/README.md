@@ -45,7 +45,8 @@ When you switch themes, the following configurations are updated:
 7. **Starship** - Prompt color palette
 8. **FZF** - Fuzzy finder colors (automatically via Fish function)
 9. **Neovim** - Editor colorscheme (automatically via sed)
-10. **Claude Code** - Sets `theme` in `~/.claude.json` to `dark-ansi` / `light-ansi` so the CLI inherits the terminal ANSI palette (no custom Claude theme system exists; the Optura ghostty palette drives Claude's colors)
+10. **Herdr** - Regenerates the `[theme]` block in `herdr/config.toml` and reloads a running server. catppuccin, rose-pine and gruvbox map to herdr built-in names; cyberdream and optura get a full `[theme.custom]` palette on top of the closest built-in base
+11. **Claude Code** - Sets `theme` in `~/.claude.json` to `dark-ansi` / `light-ansi` so the CLI inherits the terminal ANSI palette (no custom Claude theme system exists; the Optura ghostty palette drives Claude's colors)
 
 ## Adding a New Theme
 
@@ -103,6 +104,7 @@ yourtheme)
 # - update_starship_theme() - copies preset file to starship.toml
 # - update_fzf_theme() - calls Fish function to update FZF colors
 # - update_neovim_theme() - comments/uncomments vim.cmd in colorscheme.lua
+# - update_herdr_theme() - rewrites the marked [theme] block in herdr/config.toml
 ```
 
 ### 3. Test Your Theme
