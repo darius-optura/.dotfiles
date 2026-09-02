@@ -1,0 +1,94 @@
+#!/usr/bin/env fish
+
+# tmux-style switcher for herdr: fzf over open WORKSPACES and closed WORKTREES.
+# Panes are not listed. Bound to prefix+w via a herdr [[keys.command]] popup
+# (ghostty sends prefix+w on super+k).
+#
+#   herdr-switch          interactive
+#   herdr-switch --list   print the entries and exit (debug)
+#
+# Speed: one herdr call for the session snapshot, then plain file reads under
+# each repo's .git/ for worktrees. No per-repo herdr or git processes (each
+# herdr round-trip is ~20ms and the server serializes them).
+
+function _entries
+    # Open workspaces: "ws <id>\t<label>"
+    herdr api snapshot | jq -r '.result.snapshot.workspaces[] | "ws \(.workspace_id)\t\(.label)"'
+
+    # Checkout paths that already have a workspace (worktree metadata + pane cwds).
+    set -l open (herdr api snapshot | jq -r '.result.snapshot | (.workspaces[].worktree.checkout_path // empty), (.panes[].cwd // empty)' | sort -u)
+
+    # Git repos one level under the sessionizer dirs.
+    set -l config_file "$HOME/.config/tmux-sessionizer/config"
+    set -l repos
+    for line in (test -f $config_file; and grep -v '^\s*#' $config_file; or echo ~ ~/.dotfiles)
+        test -z "$line"; and continue
+        set line (string replace '~' $HOME $line)
+        for d in $line/*/ $line/
+            test -d "$d/.git"; and set -a repos (string trim -r -c / $d)
+        end
+    end
+
+    # Main checkout + linked worktrees of each repo, read straight from .git/.
+    # "wt <path>\t<branch>  <path>"
+    for repo in (printf '%s\n' $repos | sort -u)
+        for gitdir in $repo/.git $repo/.git/worktrees/*
+            set -l path $repo
+            if test "$gitdir" != "$repo/.git"
+                test -f $gitdir/gitdir; or continue
+                read -l g <$gitdir/gitdir
+                set path (string replace -r '/\.git$' '' $g)
+            end
+            test -d $path; or continue
+            contains -- $path $open; and continue
+            set -l head ""
+            test -f $gitdir/HEAD; and read head <$gitdir/HEAD
+            set -l branch (string replace 'ref: refs/heads/' '' $head)
+            printf 'wt %s\t%s  %s\n' $path $branch (string replace $HOME '~' $path)
+        end
+    end
+end
+
+# Preview pane (tmux choose-tree style): pane titles + the live screen of the
+# agent pane (else the first pane) for a workspace; git log/status for a worktree.
+function _preview
+    set -l kind (string split -m1 ' ' (string split -m1 \t $argv[1])[1])
+    switch $kind[1]
+        case ws
+            set -l panes (herdr api snapshot | jq -r --arg w $kind[2] \
+                '[.result.snapshot.panes[] | select(.workspace_id == $w)] | sort_by(.agent == null) | .[] | "\(.pane_id)\t\(.agent // "shell")\t\(.terminal_title_stripped)"')
+            for p in $panes
+                set -l f (string split \t $p)
+                printf '\e[2m%-8s %-7s\e[0m %s\n' $f[1] $f[2] $f[3]
+            end
+            printf '\e[2m%s\e[0m\n' (string repeat -n (math "$FZF_PREVIEW_COLUMNS - 1") ─)
+            herdr pane read (string split \t $panes[1])[1] --source visible --format ansi 2>/dev/null
+        case wt
+            git -C $kind[2] log --oneline --decorate --color=always -12 2>/dev/null
+            echo
+            git -C $kind[2] status --short 2>/dev/null | head -20
+    end
+end
+
+switch "$argv[1]"
+    case --list
+        _entries
+        exit 0
+    case --preview
+        _preview $argv[2]
+        exit 0
+end
+
+set -l pick (_entries | fzf --delimiter '\t' --with-nth 2 --prompt 'switch> ' --ansi \
+    --preview "$(status filename) --preview {}" --preview-window 'right,60%,border-left')
+test -z "$pick"; and exit 0
+
+set -l kind (string split -m1 ' ' (string split -m1 \t $pick)[1])
+switch $kind[1]
+    case ws
+        herdr workspace focus $kind[2]
+    case wt
+        herdr worktree open --path $kind[2] >/dev/null; or exit 1
+        set -l ws (herdr api snapshot | jq -r --arg p $kind[2] '.result.snapshot as $s | $s.workspaces[] as $w | select($w.worktree.checkout_path == $p or any($s.panes[]; .workspace_id == $w.workspace_id and .cwd == $p)) | $w.workspace_id' | head -n1)
+        test -n "$ws"; and herdr workspace focus $ws
+end

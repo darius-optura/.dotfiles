@@ -28,10 +28,14 @@ test -z "$selected"; and exit 0
 
 set -l name (basename "$selected" | tr . _)
 
-# Focus an existing workspace with this label, else create one.
-set -l ws (herdr workspace list | jq -r --arg n "$name" '.result.workspaces[]? | select(.label == $n) | .workspace_id' | head -n1)
+# Focus an existing workspace for this dir, else create one. Match first on
+# the git checkout path (works whatever the workspace label is), then on label.
+set -l ws (herdr worktree list --cwd "$selected" 2>/dev/null | jq -r --arg p "$selected" '.result.worktrees[]? | select(.path == $p) | .open_workspace_id // empty' | head -n1)
+if test -z "$ws"
+    set ws (herdr workspace list | jq -r --arg n "$name" '.result.workspaces[]? | select(.label == $n) | .workspace_id' | head -n1)
+end
 if test -n "$ws" -a "$ws" != null
-    herdr workspace focus --workspace $ws
+    herdr workspace focus $ws
 else
     herdr workspace create --cwd "$selected" --label "$name" --focus
 end

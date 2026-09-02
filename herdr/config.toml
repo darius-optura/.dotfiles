@@ -11,6 +11,7 @@ default_shell = "fish"
 # These two are unset by default; enable so the worktree open/remove chords work.
 open_worktree = "prefix+shift+o"
 remove_worktree = "prefix+alt+d"
+workspace_picker = ""
 # Cycle workspaces with direct vim-style chords (no prefix): h = prev, l = next.
 previous_workspace = "ctrl+shift+h"
 next_workspace = "ctrl+shift+l"
@@ -21,8 +22,17 @@ focus_agent = "prefix+alt+1..9"
 
 [keys.indexed]
 # ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
-# super+k / prefix+w still opens the workspace picker popup.
 workspaces = "ctrl+shift"
+
+# prefix+w (super+k in ghostty) -> fzf popup over open workspaces + closed
+# worktrees (herdr-switch), tmux-sessionizer style. Replaces the built-in
+# workspace picker, which is unbound below.
+[[keys.command]]
+key = "prefix+w"
+type = "popup"
+command = "herdr-switch"
+width = "80%"
+height = "80%"
 
 # prefix+f -> fzf a project dir and open it as a workspace (herdr-sessionizer).
 # super+f already sends prefix+f from ghostty/config.
