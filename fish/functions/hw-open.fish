@@ -32,6 +32,6 @@ function hw-open --description 'Open an existing .claude/worktrees/<branch> with
         return 1
     end
 
-    _hw_layout $root $dir
+    _hw_layout $root $dir $branch
     echo "hw-open: opened $dir"
 end
