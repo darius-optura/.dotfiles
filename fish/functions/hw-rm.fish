@@ -41,18 +41,25 @@ function hw-rm --description 'herdr worktree teardown: salvage docs, drop DB, re
         cd $main
     end
 
-    # 2. Remove via herdr (needs the workspace id, resolved from the path).
-    # The worktree JSON exposes the open workspace as `open_workspace_id`.
+    # Resolve the open herdr workspace before the checkout goes away.
+    # The worktree JSON exposes it as `open_workspace_id`.
     set -l ws (herdr worktree list | jq -r --arg p $target '.result.worktrees[]? | select(.path == $p) | .open_workspace_id // empty' | head -n1)
-    set -l removed 0
-    if test -n "$ws" -a "$ws" != null
-        herdr worktree remove --workspace $ws --force; and set removed 1
-    end
-    # Fallback to plain git if herdr could not resolve/remove it.
-    if test $removed -eq 0
-        git -C $main worktree remove --force $target; or return 1
-    end
 
+    # 2. Remove the checkout and branch with plain git. Also drop the empty
+    # parent dirs a slash in the branch name created (.claude/worktrees/<owner>/).
+    # --force twice: the second one overrides a `git worktree lock` (supacode
+    # locks every worktree it adopts).
+    git -C $main worktree remove --force --force $target; or return 1
     test "$branch" != HEAD; and git -C $main branch -D $branch
+    set -l parent (path dirname $target)
+    while test "$parent" != "$main/.claude/worktrees"; and rmdir $parent 2>/dev/null
+        set parent (path dirname $parent)
+    end
     echo "hw-rm: removed $target"
+
+    # 3. Close the herdr workspace LAST. When hw-rm runs from a pane inside that
+    # workspace this kills the shell, so nothing may follow it.
+    if test -n "$ws" -a "$ws" != null
+        herdr workspace close $ws
+    end
 end

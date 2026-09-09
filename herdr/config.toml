@@ -68,3 +68,10 @@ red = "#ff6e5e"
 blue = "#5ea1ff"
 teal = "#5ef1ff"
 peach = "#ffbd5e"
+
+# prefix+g (super+g in ghostty) -> Glance PR plugin (splits right of the
+# focused pane; run again to focus it). Overrides the default goto navigator.
+[[keys.command]]
+key = "prefix+g"
+type = "plugin_action"
+command = "glance.pr.open"

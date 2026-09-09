@@ -22,6 +22,7 @@ auto-update-channel = tip
 scrollback-limit = 1000000000
 
 keybind = super+f=text:\x02f
+keybind = super+g=text:\x02g
 keybind = super+comma=text:\x02,
 keybind = super+k=text:\x02w
 keybind = super+digit_1=text:\x021
