@@ -45,7 +45,18 @@ function hw --description 'herdr worktree: create off a base ref, bootstrap, lay
     end
 
     # 1. Create and open the worktree workspace. Capture the root pane id.
-    set -l created (herdr worktree create --path $dir --branch $branch --base $base --no-focus)
+    # herdr rejects `worktree create` when the calling pane sits in a linked
+    # worktree ("New and open worktree actions start from the repo parent
+    # workspace"), so name the repo's parent workspace instead of letting herdr
+    # infer it from the caller.
+    set -l create --path $dir --branch $branch --base $base --no-focus
+    set -l parent_ws (herdr workspace list | jq -r --arg r "$common" '.result.workspaces[]? | select(.worktree.repo_key == $r and .worktree.is_linked_worktree == false) | .workspace_id' | head -n1)
+    if test -n "$parent_ws"
+        set -a create --workspace $parent_ws
+    else
+        set -a create --cwd $main
+    end
+    set -l created (herdr worktree create $create)
     if test $status -ne 0
         echo "hw: herdr worktree create failed" >&2
         return 1

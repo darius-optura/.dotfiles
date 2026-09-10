@@ -29,37 +29,65 @@ function hw-rm --description 'herdr worktree teardown: salvage docs, drop DB, re
         return 1
     end
 
+    # A failed removal unregisters the worktree but leaves every file behind, so
+    # a checkout on disk is not proof that git still knows about it. Such an
+    # orphan has no branch and no DB left to tear down: delete the files only.
+    set -l registered 0
+    for line in (git -C $main worktree list --porcelain | string replace -rf '^worktree ' '')
+        if test (path resolve $line) = (path resolve $target)
+            set registered 1
+            break
+        end
+    end
+    if test $registered -eq 0
+        echo "hw-rm: $target is an orphan checkout, deleting the files"
+        _hw_stop_procs $target
+        _hw_remove_checkout $main $target; or return 1
+        _hw_prune_parents $main $target
+        echo "hw-rm: removed $target"
+        return 0
+    end
+
     set -l branch (git -C $target rev-parse --abbrev-ref HEAD)
-
-    # 1. Repo-owned teardown (salvage docs, drop DB) before the checkout goes.
-    if test -x "$main/.herdr/teardown.sh"
-        "$main/.herdr/teardown.sh" $target $branch; or return 1
-    end
-
-    # Leave the worktree before it is unlinked.
-    if string match -q "$target*" (pwd)
-        cd $main
-    end
 
     # Resolve the open herdr workspace before the checkout goes away.
     # The worktree JSON exposes it as `open_workspace_id`.
     set -l ws (herdr worktree list | jq -r --arg p $target '.result.worktrees[]? | select(.path == $p) | .open_workspace_id // empty' | head -n1)
 
-    # 2. Remove the checkout and branch with plain git. Also drop the empty
-    # parent dirs a slash in the branch name created (.claude/worktrees/<owner>/).
-    # --force twice: the second one overrides a `git worktree lock` (supacode
-    # locks every worktree it adopts).
-    git -C $main worktree remove --force --force $target; or return 1
-    test "$branch" != HEAD; and git -C $main branch -D $branch
-    set -l parent (path dirname $target)
-    while test "$parent" != "$main/.claude/worktrees"; and rmdir $parent 2>/dev/null
-        set parent (path dirname $parent)
+    # Leave the worktree before it is unlinked, so this shell is not one of the
+    # processes found below.
+    if string match -q "$target*" (pwd)
+        cd $main
     end
-    echo "hw-rm: removed $target"
 
-    # 3. Close the herdr workspace LAST. When hw-rm runs from a pane inside that
-    # workspace this kills the shell, so nothing may follow it.
+    # 1. Stop everything still running in the checkout, so the DB drop and the
+    # file delete are not racing a live dev server.
+    _hw_stop_procs $target
+
+    # 2. Repo-owned teardown (salvage docs, drop DB) before the checkout goes.
+    # Fatal on purpose: it carries gitignored docs/ back into the main checkout,
+    # and those are lost for good once the checkout is deleted.
+    if test -x "$main/.herdr/teardown.sh"
+        "$main/.herdr/teardown.sh" $target $branch; or return 1
+    end
+
+    # 3. Remove the checkout, then the branch and the empty parent dirs.
+    set -l removed 0
+    _hw_remove_checkout $main $target; or set removed 1
+    if test $removed -eq 0
+        test "$branch" != HEAD; and git -C $main branch -D $branch
+        _hw_prune_parents $main $target
+        echo "hw-rm: removed $target"
+    else
+        echo "hw-rm: $branch kept, the checkout is still on disk" >&2
+    end
+
+    # 4. Close the herdr workspace LAST. When hw-rm runs from a pane inside that
+    # workspace this kills the shell, so nothing may follow it. It runs even
+    # when the delete failed above, because an open workspace is what holds the
+    # leftover files.
     if test -n "$ws" -a "$ws" != null
         herdr workspace close $ws
     end
+    return $removed
 end
