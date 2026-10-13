@@ -48,6 +48,14 @@ fish/completions/*.fish
 # Oh-my-fish
 fish/conf.d/omf.fish
 
+# Fish plugins: fisher installs these per machine from fish/fish_plugins
+fish/functions/fisher.fish
+fish/functions/nvm.fish
+fish/functions/_nvm_*.fish
+fish/conf.d/nvm.fish
+fish/themes/catppuccin-*.theme
+fish/themes/static/
+
 # Installation manifest (machine-specific)
 .install-manifest.json
 

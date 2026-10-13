@@ -17,7 +17,10 @@ install: ## Run full installation
 update: ## Update all plugins and submodules
 	@echo "Updating Homebrew..."
 	@if command -v brew >/dev/null 2>&1; then \
-		brew update && brew upgrade; \
+		bash scripts/brew-heal.sh || true; \
+		brew update || echo "! brew update failed"; \
+		brew upgrade || echo "! brew upgrade had failures (see above), continuing"; \
+		bash scripts/brew-heal.sh || true; \
 	else \
 		echo "Homebrew not installed. Run 'make install' first."; \
 	fi
@@ -26,12 +29,12 @@ update: ## Update all plugins and submodules
 	@git submodule update --remote --merge 2>/dev/null || echo "No submodules to update"
 	@echo "Updating TPM plugins..."
 	@if [ -d "$$HOME/.tmux/plugins/tpm" ]; then \
-		$$HOME/.tmux/plugins/tpm/bin/update_plugins all; \
+		$$HOME/.tmux/plugins/tpm/bin/update_plugins all || echo "! TPM update failed"; \
 	else \
 		echo "TPM not installed. Run 'make install' first."; \
 	fi
 	@echo "Updating Fish plugins..."
-	@fish -c "fisher update" 2>/dev/null || echo "Fisher not installed"
+	@bash scripts/fisher-sync.sh || echo "! Fish plugin sync incomplete"
 	@echo "Updating Neovim plugins..."
 	@nvim --headless "+Lazy! sync" +qa 2>/dev/null || echo "Neovim plugins update skipped"
 	@echo "Updating Mason LSP servers..."
@@ -106,13 +109,18 @@ check: ## Verify installation health
 	done
 	@echo ""
 	@echo "Configuration Symlinks:"
-	@for config in ghostty fish nvim starship tmux bat lazygit herdr opencode; do \
+	@for config in ghostty fish nvim starship tmux bat lazygit opencode; do \
 		if [ -L "$$HOME/.config/$$config" ]; then \
 			echo "  ✓ $$config"; \
 		else \
 			echo "  ✗ $$config (not symlinked)"; \
 		fi; \
 	done
+	@if [ -L "$$HOME/.config/herdr/config.toml" ] && [ ! -L "$$HOME/.config/herdr" ]; then \
+		echo "  ✓ herdr (config.toml)"; \
+	else \
+		echo "  ✗ herdr (config.toml not symlinked)"; \
+	fi
 	@echo ""
 	@echo "Bin Scripts:"
 	@for script in tmux-sessionizer tmux-windowizer; do \
@@ -122,6 +130,17 @@ check: ## Verify installation health
 			echo "  ✗ $$script (not symlinked)"; \
 		fi; \
 	done
+	@echo ""
+	@echo "Bin Scripts (herdr):"
+	@for script in herdr herdr-sessionizer herdr-switch; do \
+		if [ -x "$$HOME/.local/bin/$$script" ]; then \
+			echo "  ✓ $$script"; \
+		else \
+			echo "  ✗ $$script (missing)"; \
+		fi; \
+	done
+	@echo ""
+	@bash scripts/brew-heal.sh --check || true
 	@echo ""
 	@echo "Plugin Managers:"
 	@if [ -d "$$HOME/.local/share/omf" ]; then \

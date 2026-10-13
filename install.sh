@@ -621,6 +621,18 @@ install_opencode_linux() {
 }
 
 # =============================================================================
+# Homebrew Health
+# =============================================================================
+
+brew_heal() {
+    if [[ "$DRY_RUN" == true ]]; then
+        bash "$DOTFILES_DIR/scripts/brew-heal.sh" --check || true
+    else
+        bash "$DOTFILES_DIR/scripts/brew-heal.sh" || true
+    fi
+}
+
+# =============================================================================
 # Herdr Installation
 # =============================================================================
 
@@ -693,7 +705,6 @@ backup_existing() {
         "tmux"
         "bat"
         "lazygit"
-        "herdr"
         "tmux-sessionizer"
         "alacritty"
         "kitty"
@@ -764,6 +775,42 @@ create_directories() {
 # Symlink Configurations
 # =============================================================================
 
+# herdr keeps sockets, logs, plugins and session state next to its config,
+# so ~/.config/herdr stays a real directory and only config.toml links into
+# the repo. Linking the whole directory would fill the repo with runtime files.
+link_herdr_config() {
+    local dir="$CONFIG_DIR/herdr"
+
+    if [[ "$DRY_RUN" == true ]]; then
+        if [[ -L "$dir/config.toml" && ! -L "$dir" ]]; then
+            print_info "[DRY-RUN] herdr config.toml already symlinked"
+        else
+            print_info "[DRY-RUN] Would symlink herdr config.toml"
+        fi
+        return
+    fi
+
+    # Older installs linked the whole directory
+    if [[ -L "$dir" ]]; then
+        rm "$dir"
+    fi
+    mkdir -p "$dir"
+
+    if [[ -L "$dir/config.toml" ]]; then
+        print_warning "herdr config.toml already symlinked"
+    else
+        if [[ -e "$dir/config.toml" ]]; then
+            BACKUP_DIR="${BACKUP_DIR:-$HOME/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)}"
+            mkdir -p "$BACKUP_DIR/herdr"
+            mv "$dir/config.toml" "$BACKUP_DIR/herdr/"
+            print_success "Backed up herdr config.toml to $BACKUP_DIR"
+        fi
+        ln -s "$DOTFILES_DIR/herdr/config.toml" "$dir/config.toml"
+        print_success "Symlinked herdr config.toml"
+    fi
+    record_symlink "herdr"
+}
+
 symlink_configs() {
     print_info "Creating symlinks..."
 
@@ -776,7 +823,6 @@ symlink_configs() {
         "tmux"
         "bat"
         "lazygit"
-        "herdr"
         "alacritty"
         "kitty"
         "opencode"
@@ -805,6 +851,8 @@ symlink_configs() {
         fi
         record_symlink "$config"
     done
+
+    link_herdr_config
 
     # Bin scripts
     local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer" "herdr-switch")
@@ -942,14 +990,8 @@ install_fish_plugins() {
         print_warning "oh-my-fish already installed"
     fi
 
-    # Install fisher
-    print_info "Installing fisher..."
-    fish -c "curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher" 2>/dev/null || true
-
-    # Install fish plugins
-    print_info "Installing fish plugins..."
-    fish -c "fisher install jorgebucaran/nvm.fish" 2>/dev/null || true
-    print_success "Fish plugins installed"
+    # Install fisher and the plugins listed in fish/fish_plugins
+    bash "$DOTFILES_DIR/scripts/fisher-sync.sh" || print_warning "Fish plugin sync incomplete, rerun: bash scripts/fisher-sync.sh"
 
     # Add Homebrew to fish config on Linux
     if [[ "$OS" == "linux" ]]; then
@@ -996,8 +1038,8 @@ install_node() {
         return
     }
 
-    # Set LTS as default
-    fish -c "nvm use lts" 2>/dev/null || true
+    # Make LTS the default for new shells; `nvm use` only affects one process
+    fish -c "set --universal nvm_default_version lts" 2>/dev/null || true
 
     print_success "Node.js LTS installed"
 }
@@ -1089,7 +1131,6 @@ uninstall_symlinks() {
         "tmux"
         "bat"
         "lazygit"
-        "herdr"
         "alacritty"
         "kitty"
         "opencode"
@@ -1102,6 +1143,17 @@ uninstall_symlinks() {
             else
                 rm "$CONFIG_DIR/$config"
                 print_success "Removed $config symlink"
+            fi
+        fi
+    done
+
+    for herdr_link in "$CONFIG_DIR/herdr/config.toml" "$CONFIG_DIR/herdr"; do
+        if [[ -L "$herdr_link" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+                print_info "[DRY-RUN] Would remove $herdr_link symlink"
+            else
+                rm "$herdr_link"
+                print_success "Removed $herdr_link symlink"
             fi
         fi
     done
@@ -1290,8 +1342,10 @@ main() {
     # Install Homebrew (all platforms)
     install_homebrew
 
-    # Install packages
+    # Install packages, with Homebrew health checks around the source builds
+    brew_heal
     install_packages
+    brew_heal
 
     # Config management
     backup_existing
