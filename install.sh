@@ -419,6 +419,7 @@ install_packages() {
         "eza"
         "go"
         "lazygit"
+        "tree-sitter-cli"
         "luarocks"
         "python"
     )
@@ -705,7 +706,6 @@ backup_existing() {
         "tmux"
         "bat"
         "lazygit"
-        "tmux-sessionizer"
         "alacritty"
         "kitty"
         "opencode"

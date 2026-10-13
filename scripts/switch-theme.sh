@@ -414,13 +414,21 @@ update_neovim_theme() {
 }
 
 # Update macOS system appearance
+# Non-fatal: osascript fails over SSH or without automation permission, and
+# under set -e that used to abort every later step, including saving the theme.
 update_macos_theme() {
+    [[ "$(uname -s)" == "Darwin" ]] || return 0
+
+    local dark=true label=Dark
     if [[ "$VARIANT" == "light" ]]; then
-        osascript -e 'tell app "System Events" to tell appearance preferences to set dark mode to false'
-        print_success "macOS appearance set to Light"
+        dark=false
+        label=Light
+    fi
+
+    if osascript -e "tell app \"System Events\" to tell appearance preferences to set dark mode to $dark" >/dev/null 2>&1; then
+        print_success "macOS appearance set to $label"
     else
-        osascript -e 'tell app "System Events" to tell appearance preferences to set dark mode to true'
-        print_success "macOS appearance set to Dark"
+        print_error "Could not set macOS appearance (no GUI session or automation permission)"
     fi
 }
 
