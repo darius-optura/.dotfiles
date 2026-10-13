@@ -8,10 +8,20 @@ const { readFlag, appendFlag, readHistory, safeWriteFlag } = require('./tldr-con
 
 const COMPRESSION = { 'full': 0.65 };
 
+// Output $/1M tokens, Anthropic first-party rates (2026-06). Prefix match, first hit wins:
+// keep specific prefixes above generic ones.
 const MODEL_OUTPUT_PRICE_PER_M = [
-  ['claude-opus-4',     75.00],
-  ['claude-sonnet-4',   15.00],
-  ['claude-haiku-4',     4.00],
+  ['claude-fable-5',    50.00],
+  ['claude-mythos-5',   50.00],
+  ['claude-opus-5',     25.00],
+  ['claude-opus-4-8',   25.00],
+  ['claude-opus-4-7',   25.00],
+  ['claude-opus-4-6',   25.00],
+  ['claude-opus-4-5',   25.00],
+  ['claude-opus-4',     75.00],   // opus 4 / 4.1
+  ['claude-sonnet-5',   10.00],
+  ['claude-sonnet-4',   15.00],   // sonnet 4 / 4.5 / 4.6
+  ['claude-haiku-4',     5.00],
   ['claude-3-5-sonnet', 15.00],
   ['claude-3-5-haiku',   4.00],
   ['claude-3-opus',     75.00],
@@ -250,6 +260,14 @@ function main() {
   const all = args.includes('--all');
   const sinceIdx = args.indexOf('--since');
   const sinceArg = sinceIdx !== -1 ? args[sinceIdx + 1] : null;
+  // --refresh: Stop-hook mode. Reads transcript_path from stdin JSON, updates the
+  // statusline cache, prints nothing.
+  const refresh = args.includes('--refresh');
+  let hookSession = null;
+  if (refresh) {
+    try { hookSession = JSON.parse(fs.readFileSync(0, 'utf8')).transcript_path || null; }
+    catch (e) { /* fall back to findRecentSession */ }
+  }
 
   const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
   const historyPath = path.join(claudeDir, '.tldr-history.jsonl');
@@ -265,9 +283,10 @@ function main() {
     return;
   }
 
-  const sessionFile = sessionFileArg || findRecentSession(claudeDir);
+  const sessionFile = sessionFileArg || hookSession || findRecentSession(claudeDir);
 
   if (!sessionFile) {
+    if (refresh) return;
     process.stderr.write('tldr-stats: no Claude Code session found.\n');
     process.exit(1);
   }
@@ -292,6 +311,8 @@ function main() {
     const suffix = agg.estSavedTokens > 0 ? `⛏ ${humanizeTokens(agg.estSavedTokens)}` : '';
     safeWriteFlag(path.join(claudeDir, '.tldr-statusline-suffix'), suffix);
   }
+
+  if (refresh) return;
 
   if (share) {
     process.stdout.write(formatShare({ ...parsed, mode }) + '\n');

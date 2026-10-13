@@ -1,0 +1,23 @@
+# Optura theme for ghostty (dark)
+palette = 0=#1a1616
+palette = 1=#a33b3b
+palette = 2=#2a7d6a
+palette = 3=#d0ae50
+palette = 4=#202e42
+palette = 5=#420d41
+palette = 6=#61c2ab
+palette = 7=#d6d0c2
+palette = 8=#8c8478
+palette = 9=#c8595a
+palette = 10=#61c2ab
+palette = 11=#e6c876
+palette = 12=#d9ecf7
+palette = 13=#7e3d8a
+palette = 14=#7ed3c0
+palette = 15=#ffffff
+
+background = #1a1616
+foreground = #f0eee4
+cursor-color = #d0ae50
+selection-background = #420d41
+selection-foreground = #f0eee4

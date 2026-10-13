@@ -145,11 +145,16 @@ if [ -n "$wt_name" ]; then
   parts+=("${BLUE}⎇ ${wt_name}${RESET}")
 fi
 
-# ── caveman badge ────────────────────────────────────────────────────────────
+# ── razor badge ──────────────────────────────────────────────────────────────
+# Ships with the occam plugin. The cache path carries a version, so resolve it
+# rather than hardcoding one; fall back to a marketplace-linked checkout.
 
-caveman_badge=$(bash "${HOME}/.claude/hooks/caveman-statusline.sh" 2>/dev/null)
-if [ -n "$caveman_badge" ]; then
-  parts+=("$caveman_badge")
+_cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+razor_sl=$(ls -d "$_cfg"/plugins/cache/occam/occam/*/hooks/razor-statusline.sh 2>/dev/null | sort -V | tail -1)
+[ -z "$razor_sl" ] && razor_sl=$(ls -d "$_cfg"/plugins/marketplaces/occam/hooks/razor-statusline.sh 2>/dev/null | head -1)
+if [ -n "$razor_sl" ]; then
+  razor_badge=$(bash "$razor_sl" 2>/dev/null)
+  [ -n "$razor_badge" ] && parts+=("$razor_badge")
 fi
 
 # ── assemble ─────────────────────────────────────────────────────────────────

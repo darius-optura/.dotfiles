@@ -419,6 +419,7 @@ install_packages() {
         "eza"
         "go"
         "lazygit"
+        "herdr"
         "luarocks"
         "python"
     )
@@ -633,6 +634,7 @@ backup_existing() {
         "tmux"
         "bat"
         "lazygit"
+        "herdr"
         "tmux-sessionizer"
         "alacritty"
         "kitty"
@@ -715,6 +717,7 @@ symlink_configs() {
         "tmux"
         "bat"
         "lazygit"
+        "herdr"
         "alacritty"
         "kitty"
         "opencode"
@@ -745,7 +748,7 @@ symlink_configs() {
     done
 
     # Bin scripts
-    local bin_scripts=("tmux-sessionizer" "tmux-windowizer")
+    local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer" "herdr-switch")
 
     for script in "${bin_scripts[@]}"; do
         if [[ "$DRY_RUN" == true ]]; then
@@ -1027,6 +1030,7 @@ uninstall_symlinks() {
         "tmux"
         "bat"
         "lazygit"
+        "herdr"
         "alacritty"
         "kitty"
         "opencode"

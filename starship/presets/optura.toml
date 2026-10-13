@@ -1,0 +1,85 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+scan_timeout = 30
+command_timeout = 3600
+add_newline = true
+
+palette = "optura"
+
+[character]
+success_symbol = "[❯](gold bold)"
+error_symbol   = "[❯](red bold)"
+vimcmd_symbol  = "[❮](teal)"
+
+[directory]
+truncation_length = 4
+style = "gold bold"
+
+[git_branch]
+style = "teal"
+symbol = " "
+
+[git_status]
+style = "gold"
+
+[git_state]
+style = "purple_soft"
+
+[hostname]
+style = "teal"
+
+[username]
+style_user = "teal"
+style_root = "red bold"
+
+[cmd_duration]
+style = "gold"
+
+[time]
+style = "neutral_500"
+
+[python]
+style = "gold"
+
+[nodejs]
+style = "teal"
+
+[rust]
+style = "gold"
+
+[golang]
+style = "teal_light"
+
+[docker_context]
+style = "teal_light"
+
+[kubernetes]
+style = "purple_soft"
+
+[palettes.optura]
+# Brand colors
+gold       = "#d0ae50"
+dark_gold  = "#8b6914"
+charcoal   = "#1a1616"
+off_white  = "#f0eee4"
+white      = "#ffffff"
+purple     = "#420d41"
+purple_soft = "#7e3d8a"
+teal       = "#61c2ab"
+teal_light = "#7ed3c0"
+dark_teal  = "#2a7d6a"
+light_blue = "#d9ecf7"
+dark_blue  = "#202e42"
+
+# Convenience aliases for starship's named colors
+red    = "#a33b3b"
+yellow = "#d0ae50"
+green  = "#2a7d6a"
+blue   = "#202e42"
+cyan   = "#61c2ab"
+magenta = "#420d41"
+
+# Neutral ramp
+neutral_300 = "#d6d0c2"
+neutral_500 = "#7a756a"
+neutral_700 = "#3a3732"

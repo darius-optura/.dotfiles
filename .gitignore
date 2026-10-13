@@ -50,3 +50,9 @@ fish/conf.d/omf.fish
 
 # Installation manifest (machine-specific)
 .install-manifest.json
+
+# Re-include skill source files that global ~/.gitignore would otherwise hide
+!claude/skills/**/LANGUAGE.md
+!claude/skills/**/CONTEXT.md
+!claude/skills/**/CONTEXT-MAP.md
+!claude/skills/**/ADR-*.md

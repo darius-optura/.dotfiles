@@ -1,0 +1,59 @@
+onboarding = false
+# herdr config — managed in dotfiles, symlinked to ~/.config/herdr/config.toml.
+# Only overrides are set here; every other value uses herdr's built-in default
+# (see `herdr --default-config`). herdr keeps its default keybindings — the
+# super+* reconcile happens in ghostty/config.
+
+[terminal]
+default_shell = "fish"
+
+[keys]
+# These two are unset by default; enable so the worktree open/remove chords work.
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+alt+d"
+workspace_picker = ""
+# Cycle workspaces with direct vim-style chords (no prefix): h = prev, l = next.
+previous_workspace = "ctrl+shift+h"
+next_workspace = "ctrl+shift+l"
+# Cycle agent focus (down = next, up = prev), and jump to agent N.
+next_agent = "ctrl+shift+j"
+previous_agent = "ctrl+shift+k"
+focus_agent = "prefix+alt+1..9"
+# Built-in goto (workspace/tab/pane tree) moves here; prefix+g opens Glance PR.
+goto = "prefix+shift+k"
+
+[keys.indexed]
+# ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
+workspaces = "ctrl+shift"
+
+# prefix+w (super+k in ghostty) -> fzf popup over open workspaces, grouped like
+# the sidebar (herdr-switch; --all adds closed worktrees). Replaces the built-in
+# workspace picker, which is unbound below.
+[[keys.command]]
+key = "prefix+w"
+type = "popup"
+command = "herdr-switch"
+width = "80%"
+height = "80%"
+
+# prefix+f -> fzf a project dir and open it as a workspace (herdr-sessionizer).
+# super+f already sends prefix+f from ghostty/config.
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "herdr-sessionizer"
+width = "80%"
+height = "80%"
+
+# prefix+g (super+g in ghostty) -> Glance PR plugin (splits right of the
+# focused pane; run again to focus it). Overrides the default goto navigator.
+[[keys.command]]
+key = "prefix+g"
+type = "plugin_action"
+command = "glance.pr.open"
+
+# Keep all custom config above this marker: switch-theme.sh drops everything below it.
+# BEGIN theme — managed by scripts/switch-theme.sh
+[theme]
+name = "rose-pine"
+auto_switch = false

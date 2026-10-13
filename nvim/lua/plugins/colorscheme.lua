@@ -21,7 +21,7 @@ return {
     -- priority = 1000,
     config = function()
       require("catppuccin").setup({
-        flavour = "latte", -- latte, frappe, macchiato, mocha
+        flavour = "mocha", -- latte, frappe, macchiato, mocha
         transparent_background = true, -- disables setting the background color.)
         integrations = {
           blink_cmp = true,
@@ -77,6 +77,18 @@ return {
         transparent = true,
       })
       -- vim.cmd("colorscheme cyberdream")
+    end,
+  },
+  {
+    -- Local Optura colorscheme. File lives at nvim/colors/optura.lua.
+    -- Switcher toggles vim.g.optura_variant ("dark"|"light") and the colorscheme line.
+    name = "optura",
+    dir = vim.fn.stdpath("config"),
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.g.optura_variant = "dark"
+      -- vim.cmd("colorscheme optura")
     end,
   },
 }
