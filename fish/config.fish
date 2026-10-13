@@ -48,7 +48,7 @@ export PATH="$HOME/.gcloud/bin:$PATH"
 
 export PATH="/usr/local/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
-export CLOUDSDK_PYTHON=python3.12
+export CLOUDSDK_PYTHON=python3.14
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
