@@ -63,7 +63,7 @@ return {
 					ruff = {
 						enabled = true,
 						formatEnabled = true,
-						executable = "/opt/homebrew/bin/ruff",
+						executable = vim.fn.exepath("ruff") ~= "" and vim.fn.exepath("ruff") or nil,
 					},
 				},
 			},

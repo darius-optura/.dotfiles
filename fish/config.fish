@@ -34,8 +34,12 @@ alias oo="opencode"
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 
 export GOPATH=$HOME/Incubator/Go
-export GOROOT="/opt/homebrew/opt/go/libexec"
-# export GOROOT="/usr/local/opt/go/libexec"
+for goroot in /opt/homebrew/opt/go/libexec /usr/local/opt/go/libexec
+    if test -d $goroot
+        export GOROOT=$goroot
+        break
+    end
+end
 #export GO111MODULE=on
 export PATH="$PATH:$GOPATH/bin:$GOROOT/bin"
 

@@ -4,8 +4,19 @@
 #   Supacode -> fish, no multiplexer (Supacode manages its own tabs/panes)
 #   Ghostty  -> herdr (multiplexer for agents + worktrees)
 # SUPACODE_SOCKET_PATH is set in Supacode terminals, unset in plain Ghostty.
+#
+# Ghostty starts this with a minimal GUI PATH, so find fish by prefix:
+# Apple Silicon Homebrew, Intel Homebrew, then Linux.
+FISH=fish
+for f in /opt/homebrew/bin/fish /usr/local/bin/fish /usr/bin/fish; do
+    if [ -x "$f" ]; then
+        FISH="$f"
+        break
+    fi
+done
+
 if [ -n "$SUPACODE_SOCKET_PATH" ]; then
-    exec /usr/local/bin/fish
+    exec "$FISH"
 fi
 
 # nvm.fish (conf.d/nvm.fish) only runs `nvm use` for INTERACTIVE fish. The herdr
@@ -19,4 +30,4 @@ done
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 
-exec /usr/local/bin/fish --login -c "herdr --session default"
+exec "$FISH" --login -c "herdr --session default"
