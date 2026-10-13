@@ -419,7 +419,6 @@ install_packages() {
         "eza"
         "go"
         "lazygit"
-        "herdr"
         "luarocks"
         "python"
     )
@@ -492,6 +491,8 @@ install_packages() {
         # Install Nerd Font via cask
         install_nerd_font_macos
     fi
+
+    install_herdr
 
     # Linux-only: Install opencode from GitHub releases
     if [[ "$OS" == "linux" ]]; then
@@ -617,6 +618,64 @@ install_opencode_linux() {
 
     print_success "Installed OpenCode $version"
     record_package "manual" "opencode"
+}
+
+# =============================================================================
+# Herdr Installation
+# =============================================================================
+
+# herdr ships prebuilt binaries for every platform we support. Homebrew only
+# bottles it for Apple Silicon, so on Intel `brew install herdr` builds from
+# source. Use the release binary everywhere; `herdr update` keeps it current.
+install_herdr() {
+    print_info "Installing herdr from GitHub releases..."
+
+    if [[ -x "$LOCAL_BIN_DIR/herdr" ]]; then
+        if [[ "$FORCE" == true ]]; then
+            print_info "Reinstalling herdr..."
+        else
+            print_warning "herdr already installed"
+            record_preexisting "formulae" "herdr"
+            return
+        fi
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        print_info "[DRY-RUN] Would download and install herdr"
+        return
+    fi
+
+    local herdr_arch=""
+    case "$ARCH" in
+        x86_64|amd64)
+            herdr_arch="x86_64"
+            ;;
+        aarch64|arm64)
+            herdr_arch="aarch64"
+            ;;
+        *)
+            print_error "Unsupported architecture for herdr: $ARCH"
+            return
+            ;;
+    esac
+
+    local asset="herdr-${OS}-${herdr_arch}"
+    local tmp_file
+    tmp_file=$(mktemp)
+
+    print_info "Downloading $asset..."
+    if ! curl -fsSLo "$tmp_file" "https://github.com/ogulcancelik/herdr/releases/latest/download/$asset"; then
+        print_error "Failed to download herdr"
+        rm -f "$tmp_file"
+        return
+    fi
+
+    mkdir -p "$LOCAL_BIN_DIR"
+    mv "$tmp_file" "$LOCAL_BIN_DIR/herdr"
+    chmod +x "$LOCAL_BIN_DIR/herdr"
+
+    print_success "Installed $("$LOCAL_BIN_DIR/herdr" --version)"
+    record_package "manual" "herdr"
 }
 
 # =============================================================================
@@ -1134,6 +1193,14 @@ uninstall_packages() {
             fi
 
             case "$pkg" in
+                herdr)
+                    if prompt_yes_no "Remove herdr from $LOCAL_BIN_DIR?"; then
+                        rm -f "$LOCAL_BIN_DIR/herdr"
+                        print_success "Removed herdr"
+                    else
+                        print_info "Keeping herdr"
+                    fi
+                    ;;
                 opencode)
                     if prompt_yes_no "Remove opencode from $LOCAL_BIN_DIR?"; then
                         rm -f "$LOCAL_BIN_DIR/opencode"
