@@ -19,13 +19,15 @@ next_workspace = "ctrl+shift+l"
 next_agent = "ctrl+shift+j"
 previous_agent = "ctrl+shift+k"
 focus_agent = "prefix+alt+1..9"
+# Built-in goto (workspace/tab/pane tree) moves here; prefix+g opens Glance PR.
+goto = "prefix+shift+k"
 
 [keys.indexed]
 # ctrl+shift+1..9 jumps straight to workspace N (direct chord, no prefix).
 workspaces = "ctrl+shift"
 
-# prefix+w (super+k in ghostty) -> fzf popup over open workspaces + closed
-# worktrees (herdr-switch), tmux-sessionizer style. Replaces the built-in
+# prefix+w (super+k in ghostty) -> fzf popup over open workspaces, grouped like
+# the sidebar (herdr-switch; --all adds closed worktrees). Replaces the built-in
 # workspace picker, which is unbound below.
 [[keys.command]]
 key = "prefix+w"
@@ -43,35 +45,15 @@ command = "herdr-sessionizer"
 width = "80%"
 height = "80%"
 
-# BEGIN theme — managed by scripts/switch-theme.sh
-[theme]
-name = "catppuccin"
-auto_switch = false
-
-[theme.custom]
-accent = "#5ef1ff"
-panel_bg = "#16181a"
-sidebar_bg = "#16181a"
-active_row_bg = "#1e2124"
-selection_bg = "#3c4048"
-surface0 = "#1e2124"
-surface1 = "#3c4048"
-surface_dim = "#1e2124"
-overlay0 = "#3c4048"
-overlay1 = "#7b8496"
-text = "#ffffff"
-subtext0 = "#7b8496"
-mauve = "#ff5ef1"
-green = "#5eff6c"
-yellow = "#f1ff5e"
-red = "#ff6e5e"
-blue = "#5ea1ff"
-teal = "#5ef1ff"
-peach = "#ffbd5e"
-
 # prefix+g (super+g in ghostty) -> Glance PR plugin (splits right of the
 # focused pane; run again to focus it). Overrides the default goto navigator.
 [[keys.command]]
 key = "prefix+g"
 type = "plugin_action"
 command = "glance.pr.open"
+
+# Keep all custom config above this marker: switch-theme.sh drops everything below it.
+# BEGIN theme — managed by scripts/switch-theme.sh
+[theme]
+name = "rose-pine"
+auto_switch = false

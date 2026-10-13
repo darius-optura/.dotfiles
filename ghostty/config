@@ -10,7 +10,7 @@ font-family = Hack Nerd Font Mono
 command = /Users/darius/.dotfiles/scripts/ghostty-shell
 
 shell-integration = fish
-theme = cyberdream
+theme = Rose Pine Moon
 window-decoration = false
 window-padding-x = 0
 window-padding-y = 0

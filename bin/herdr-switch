@@ -4,16 +4,28 @@
 # Panes are not listed. Bound to prefix+w via a herdr [[keys.command]] popup
 # (ghostty sends prefix+w on super+k).
 #
-#   herdr-switch          interactive
-#   herdr-switch --list   print the entries and exit (debug)
+#   herdr-switch               interactive, open workspaces only (sidebar view)
+#   herdr-switch --all         also list closed worktrees
+#   herdr-switch --list [--all] print the entries and exit (debug)
 #
 # Speed: one herdr call for the session snapshot, then plain file reads under
 # each repo's .git/ for worktrees. No per-repo herdr or git processes (each
 # herdr round-trip is ~20ms and the server serializes them).
 
 function _entries
-    # Open workspaces: "ws <id>\t<label>"
-    herdr api snapshot | jq -r '.result.snapshot.workspaces[] | "ws \(.workspace_id)\t\(.label)"'
+    # Open workspaces in sidebar order: "ws <id>\t<label>". Linked worktrees are
+    # indented under the workspace of the same repo, as the sidebar groups them.
+    herdr api snapshot | jq -r '.result.snapshot.workspaces as $ws
+        | $ws[] | select(.worktree.is_linked_worktree != true) as $p
+        | ($p, ($ws[] | select(.worktree.is_linked_worktree == true and .worktree.repo_key == $p.worktree.repo_key and $p.worktree != null)
+                      | .label = "  └ \(.label)"))
+        | "ws \(.workspace_id)\t\(.label)"'
+    # Linked worktrees whose parent workspace is closed.
+    herdr api snapshot | jq -r '.result.snapshot.workspaces as $ws
+        | ([$ws[] | select(.worktree.is_linked_worktree == false) | .worktree.repo_key]) as $parents
+        | $ws[] | select(.worktree.is_linked_worktree == true and (.worktree.repo_key | IN($parents[]) | not))
+        | "ws \(.workspace_id)\t\(.label)"'
+    test "$argv[1]" = --all; or return 0
 
     # Checkout paths that already have a workspace (worktree metadata + pane cwds).
     set -l open (herdr api snapshot | jq -r '.result.snapshot | (.workspaces[].worktree.checkout_path // empty), (.panes[].cwd // empty)' | sort -u)
@@ -72,14 +84,14 @@ end
 
 switch "$argv[1]"
     case --list
-        _entries
+        _entries $argv[2]
         exit 0
     case --preview
         _preview $argv[2]
         exit 0
 end
 
-set -l pick (_entries | fzf --delimiter '\t' --with-nth 2 --prompt 'switch> ' --ansi \
+set -l pick (_entries $argv[1] | fzf --delimiter '\t' --with-nth 2 --prompt 'switch> ' --ansi \
     --preview "$(status filename) --preview {}" --preview-window 'right,60%,border-left')
 test -z "$pick"; and exit 0
 

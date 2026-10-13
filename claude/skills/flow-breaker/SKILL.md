@@ -1,87 +1,54 @@
 ---
 name: flow-breaker
-description: Manage flow-breaker tasks and monitor alarms. Auto-activates at session start to check status and begin alarm monitoring. Use when user asks to add/edit/complete/delete tasks or check their schedule.
+description: Manage flow-breaker tasks and check alarms. Use at session start to check status, and when the user asks to add/complete/snooze tasks or check their schedule.
 allowed-tools: Bash(flow-breaker *)
 ---
 
 # flow-breaker Task Manager
 
-You are connected to flow-breaker, a terminal daily planner. You can manage tasks and monitor alarms through its CLI/socket interface.
+flow-breaker is a daily planner. A daemon on the Raspberry Pi holds the tasks. The `flow-breaker` CLI talks to it over HTTP.
 
-## On Session Start
+Base URL (highest priority first): `FLOW_BREAKER_URL` env var → `~/.config/flow-breaker/client` → `http://localhost:7777`. On this Mac it is `https://rpi.tailec397d.ts.net`, which works only while Tailscale is connected.
 
-1. Run `flow-breaker nudge` to check current status
-2. Surface any overdue tasks or alarms to the user immediately
-3. Start the alarm monitoring loop (see below)
+## Alerts
 
-## Alarm Monitoring Loop
+Hooks do the monitoring; do not poll. SessionStart runs `flow-breaker nudge`. Every prompt runs `flow-breaker nudge --quiet`, which prints only when something is interrupt-worthy. There is no `watch` command.
 
-Start a long-poll watch to get real-time alarm notifications:
+When a nudge surfaces: mention it prominently, then continue the user's request. Never act on it unless the user asks.
 
-1. Run `flow-breaker watch --timeout 55` in background
-2. When it returns, check the JSON output:
-   - `{"event":"alarm_fired","task":{...}}` → Tell the user immediately: "🚨 ALARM: [task desc] at [time] — would you like to mark it done, snooze, or dismiss?"
-   - `{"event":"alarm_dismissed"}` → Alarm was handled in the TUI, no action needed
-   - `{"event":"task_added","task":{...}}` → A task was added (possibly from TUI)
-   - `{"event":"timeout"}` → No events, just re-launch watch
-3. After processing, re-launch the watch command
-4. If watch fails (TUI not running), fall back to `flow-breaker nudge` every 60 seconds
+## If the daemon is unreachable
 
-## Task Management Commands
+`flow-breaker nudge` prints `⚠️ flow-breaker unreachable — tasks unknown`. Tell the user. The usual cause is that Tailscale is disconnected on the Mac. Do not say "the TUI is not running" — the TUI is not needed.
 
-### Add a task
-```bash
-flow-breaker add HH:MM description [--repeat daily|once|weekdays|weekly|monthly] [--tags a,b] [--days Mon,Tue]
-```
+## Commands
+
+Status:
+- `flow-breaker nudge` — one-line status
+- `flow-breaker status` — JSON status (`alarm_firing`, `overdue`, `upcoming`, `done`, `nudge`)
+- `flow-breaker list` — today's active tasks
+- `flow-breaker archive` — archived one-off tasks
+
+Change tasks:
+- `flow-breaker add HH:MM description [--repeat daily|once|weekdays|weekly|monthly] [--tags a,b] [--days Mon,Tue]`
+- `flow-breaker capture <free text>` — schedules the text, or puts it in the inbox
+- `flow-breaker done <query>` — mark a task done (id or text match)
+- `flow-breaker snooze <id> [minutes]`
 
 Examples:
-- `flow-breaker add 09:00 standup --repeat weekdays`
-- `flow-breaker add 14:30 dentist appointment --repeat once`
-- `flow-breaker add 12:00 lunch --repeat daily --tags health`
+- `flow-breaker add 09:00 Stand-up --repeat weekdays`
+- `flow-breaker add 14:00 Call plumber --repeat once`
+- `flow-breaker capture call mom tomorrow at 6pm`
 
-### Mark task done
-```bash
-flow-breaker done <id>
-```
+Calendar:
+- `flow-breaker cal-list` — today's events
+- `flow-breaker cal-feeds` — configured feeds
+- `flow-breaker cal-add <url|path> [--label name]` / `flow-breaker cal-remove <q>`
 
-### Edit a task (requires TUI running)
-```bash
-flow-breaker edit <id> [--time HH:MM] [--desc new description] [--repeat daily] [--tags a,b] [--days Mon,Tue]
-```
+## Not available from the CLI
 
-### Delete a task (requires TUI running)
-```bash
-flow-breaker delete <id>
-```
+There are no `watch`, `edit`, `delete` or `dismiss` commands. To edit or delete one task, tell the user to use the TUI (`flow-breaker`, keys `e` / `d`). Never run `flow-breaker clear` unless the user explicitly asks — it deletes all tasks.
 
-### Dismiss a task (requires TUI running)
-```bash
-flow-breaker dismiss <id>
-```
+## Notes
 
-### Snooze a task (requires TUI running)
-```bash
-flow-breaker snooze <id> [minutes]
-```
-
-## Status Queries
-
-- `flow-breaker nudge` — one-liner status (works always)
-- `flow-breaker status` — full JSON status
-- `flow-breaker list` — list active tasks
-- `flow-breaker cal-list` — today's calendar events
-
-## Responding to Alarm Events
-
-When you receive an alarm_fired event:
-1. Immediately notify the user with the task details
-2. Ask what they want to do: done, snooze, or dismiss
-3. Execute their choice using the appropriate command
-4. The watch loop will pick up the alarm_dismissed event automatically
-
-## Important Notes
-
-- Task IDs are numeric (shown in brackets when adding tasks, or in status JSON)
-- Commands that modify tasks (edit, delete, dismiss, snooze) require the TUI to be running
-- The add command works both with and without the TUI running
-- Always confirm task changes back to the user
+- Always confirm task changes back to the user.
+- Run `flow-breaker --help` if a command fails; the CLI may have changed.
