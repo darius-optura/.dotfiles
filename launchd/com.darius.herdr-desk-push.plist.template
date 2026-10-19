@@ -14,7 +14,9 @@
         <key>PATH</key>
         <string>__PATH__</string>
     </dict>
-    <key>StartInterval</key>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
     <integer>10</integer>
     <key>RunAtLoad</key>
     <true/>

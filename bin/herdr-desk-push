@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Push this Mac's herdr agent list to desk (the Pixel desk dashboard).
-# The com.darius.herdr-desk-push LaunchAgent runs it every 10 s.
-# DESK_URL comes from ~/.config/desk/push.env (per machine, not in this repo).
-# Usage: herdr-desk-push [--dry-run]
-set -euo pipefail
+# Push this Mac's herdr agents and their screens to desk (the Pixel desk dashboard), and send
+# the menu keys tapped on desk to blocked agents. The com.darius.herdr-desk-push LaunchAgent
+# keeps it running. DESK_URL comes from ~/.config/desk/push.env (per machine, not in this repo).
+# Every 2 s it polls desk for keys; every 10 s it pushes the agent list and screens.
+# Usage: herdr-desk-push [--once | --dry-run]
+#   --once     one push and one poll, then exit
+#   --dry-run  print the push URL and body, send nothing
+# No set -e or -u: a failing or unset anything must never end the loop. Runs on bash 3.2.
+set -o pipefail
+export LC_ALL=C
 
 env_file="${HERDR_DESK_ENV:-$HOME/.config/desk/push.env}"
 [[ -f "$env_file" ]] || exit 0
@@ -11,14 +16,168 @@ env_file="${HERDR_DESK_ENV:-$HOME/.config/desk/push.env}"
 source "$env_file"
 [[ -n "${DESK_URL:-}" ]] || exit 0
 
-# No herdr server running means no agents: send an empty list.
-body=$(herdr agent list 2>/dev/null) || body=''
-[[ -n "$body" ]] || body='{"agents": []}'
-url="${DESK_URL%/}/herdr?mac=$(hostname -s)"
+mac=$(hostname -s)
+push_url="${DESK_URL%/}/herdr?mac=$mac"
+poll_url="${DESK_URL%/}/herdr/poll?mac=$mac"
+acks_file="$HOME/.local/state/desk/acks.json"
+has_jq=0
+command -v jq >/dev/null && has_jq=1
+sep=$'\x1f'
+last_push=-10
+
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 0' TERM INT
+
+# h runs herdr with a 5 s limit (macOS has no timeout); a call that hits it fails.
+h() { perl -e 'alarm shift; exec @ARGV' 5 herdr "$@" </dev/null; }
+
+# read_screen prints a pane's visible text; it fails when the read fails or is empty.
+read_screen() {
+    local text
+    text=$(h agent read "$1" --source visible --lines 30 2>/dev/null) || return 1
+    [[ -n "$text" ]] || return 1
+    printf '%s' "$text"
+}
+
+# screen_hash prints the hash desk compares: runs of ─ squeezed, digits removed, runs of
+# spaces and newlines squeezed (pane resizes and status-line clocks must not change it).
+screen_hash() {
+    local sum
+    sum=$(printf '%s' "$1" | sed -E 's/(─)+/─/g' | tr -d '0-9' | tr -s ' \n' | shasum -a 256 | cut -c1-16) || return 1
+    [[ "$sum" =~ ^[0-9a-f]{16}$ ]] || return 1
+    printf '%s' "$sum"
+}
+
+# plain_list prints herdr's agent list, or an empty one when herdr is not running.
+plain_list() {
+    local list
+    list=$(h agent list 2>/dev/null) || list=''
+    [[ -n "$list" ]] || list='{"agents": []}'
+    printf '%s' "$list"
+}
+
+# push_body prints the agent list plus a screen (text and hash) for each agent it can read.
+push_body() {
+    local list pane text sum
+    list=$(h agent list 2>/dev/null) || list=''
+    if [[ -z "$list" ]] || ! jq -e '.result.agents | arrays' >/dev/null 2>&1 <<<"$list"; then
+        printf '%s' '{"agents": []}'
+        return
+    fi
+    : >"$tmp/screens"
+    while IFS= read -r -u 3 pane; do
+        text=$(read_screen "$pane") || continue
+        sum=$(screen_hash "$text") || continue
+        printf '%s' "$text" >"$tmp/text"
+        jq -cn --arg pane "$pane" --rawfile text "$tmp/text" --arg hash "$sum" \
+            '{$pane, $text, $hash}' >>"$tmp/screens" 2>/dev/null
+    done 3< <(jq -r '.result.agents[] | .pane_id // empty | select(. != "")' <<<"$list" 2>/dev/null)
+    jq -c --slurpfile s "$tmp/screens" '. + {screens: $s}' <<<"$list" 2>/dev/null || printf '%s' "$list"
+}
+
+push() {
+    local body
+    last_push=$SECONDS
+    if ((has_jq)); then body=$(push_body); else body=$(plain_list); fi
+    printf '%s' "$body" | curl -fsS -m 5 -X POST -H 'Content-Type: application/json' \
+        --data-binary @- "$push_url" >/dev/null
+}
+
+# ack appends one key's outcome to the acks file; the next poll carries it to desk.
+ack() {
+    jq -c --arg id "$1" --argjson ok "$2" --arg reason "$3" \
+        '. + [{id: $id, ok: $ok} + (if $reason == "" then {} else {reason: $reason} end)]' \
+        "$acks_file" >"$acks_file.tmp" 2>/dev/null && mv "$acks_file.tmp" "$acks_file"
+}
+
+# run_key checks one key from a poll answer (safety rules 2-5) and sends it.
+run_key() {
+    local id pane terminal seq want key text sum info t s st
+    IFS=$sep read -r id pane terminal seq want key <<<"$1"
+    case "$key" in
+    [1-9] | up | down | enter | esc) ;;
+    *) ack "$id" false "bad key"; return ;;
+    esac
+    if grep -qxF -- "$pane" "$tmp/dups"; then
+        ack "$id" false changed
+        return
+    fi
+    if ! text=$(read_screen "$pane") || ! sum=$(screen_hash "$text") || [[ "$sum" != "$want" ]]; then
+        ack "$id" false changed
+        return
+    fi
+    # Last check right before sending: the agent must not have moved on since the read.
+    info=$(h agent get "$pane" 2>/dev/null | jq -r --arg s "$sep" \
+        '.result.agent // empty | [.terminal_id // "", (.state_change_seq // "" | tostring), .agent_status // ""] | join($s)' 2>/dev/null)
+    if [[ -z "$info" ]]; then
+        ack "$id" false gone
+        return
+    fi
+    IFS=$sep read -r t s st <<<"$info"
+    if [[ "$t" != "$terminal" || "$s" != "$seq" ]]; then
+        ack "$id" false changed
+        return
+    fi
+    if [[ "$st" != blocked ]]; then
+        ack "$id" false "not blocked"
+        return
+    fi
+    sent_any=1
+    if h agent send-keys "$pane" "$key" >/dev/null 2>&1; then
+        ack "$id" true ""
+    else
+        ack "$id" false "send failed"
+    fi
+}
+
+# poll sends the stored acks and runs the keys in desk's answer. It fails unless desk
+# answered 2xx; only then are the acks emptied. sent_any tells whether a key went out.
+poll() {
+    local acks code k
+    sent_any=0
+    acks=$(cat "$acks_file" 2>/dev/null)
+    jq -e 'arrays' >/dev/null 2>&1 <<<"$acks" || acks='[]'
+    code=$(jq -cn --argjson acks "$acks" '{$acks}' | curl -sS -m 5 -o "$tmp/answer" -w '%{http_code}' \
+        -X POST -H 'Content-Type: application/json' --data-binary @- "$poll_url" 2>/dev/null) || return 1
+    [[ "$code" == 2?? ]] || return 1
+    printf '[]' >"$acks_file"
+    jq -r '[.keys[]?.pane] | group_by(.) | map(select(length > 1)[0]) | .[]' "$tmp/answer" >"$tmp/dups" 2>/dev/null
+    jq -r --arg s "$sep" '.keys[]? | [.id, .pane, .terminal, (.seq | tostring), .screen, .key] | join($s)' \
+        "$tmp/answer" >"$tmp/keys" 2>/dev/null || return 0
+    while IFS= read -r -u 3 k; do
+        run_key "$k"
+    done 3<"$tmp/keys"
+    return 0
+}
+
+# poll_round polls; after a poll that sent a key it polls again at once (carrying the acks)
+# and pushes only after that poll answered, so desk gets the new screen after the ack.
+# Keys the second poll sends are acked by the next one.
+poll_round() {
+    poll || return
+    ((sent_any)) || return
+    poll && push
+}
 
 if [[ "${1:-}" == "--dry-run" ]]; then
-    printf '%s\n%s\n' "$url" "$body"
+    if ((has_jq)); then body=$(push_body); else body=$(plain_list); fi
+    printf '%s\n%s\n' "$push_url" "$body"
     exit 0
 fi
 
-printf '%s' "$body" | curl -fsS -m 5 -X POST -H 'Content-Type: application/json' --data-binary @- "$url" >/dev/null
+mkdir -p "${acks_file%/*}"
+[[ -f "$acks_file" ]] || printf '[]' >"$acks_file"
+
+if [[ "${1:-}" == "--once" ]]; then
+    push
+    ((has_jq)) && poll_round
+    exit 0
+fi
+
+# Without jq: push the plain list every 10 s, never poll or send keys.
+while :; do
+    ((SECONDS - last_push >= 10)) && push
+    ((has_jq)) && poll_round
+    if ((has_jq)); then sleep 2; else sleep 10; fi
+done
