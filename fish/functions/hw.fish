@@ -1,15 +1,17 @@
 function hw --description 'herdr worktree: create off a base ref, bootstrap, lay out nvim+claude+shell'
-    # Usage: hw <branch> [<base>]
+    # Usage: hw [--review] <branch> [<base>]
     # Creates <repo>/.claude/worktrees/<branch> off <base> (default origin/main),
     # runs the repo's .herdr/setup.sh if present, then builds a 3-pane workspace
     # via the herdr socket API:
     # nvim (root, left) | claude (top-right) | codex (bottom-right).
+    # --review lays out only claude | glance (PR), for reviewing a branch.
     #
     # NOTE: run this from inside a herdr session (a herdr server must be running).
     # The .result JSON field names below match herdr 0.8.2's API schema; if a
     # future version changes them, adjust the jq paths.
+    argparse review -- $argv; or return 1
     if test (count $argv) -lt 1 -o (count $argv) -gt 2
-        echo "usage: hw <branch> [<base>]" >&2
+        echo "usage: hw [--review] <branch> [<base>]" >&2
         return 1
     end
     set -l branch $argv[1]
@@ -73,8 +75,11 @@ function hw --description 'herdr worktree: create off a base ref, bootstrap, lay
         "$main/.herdr/setup.sh" $dir $branch; or return 1
     end
 
-    # 3. Layout: nvim (top-left) + claude (top-right) + shell (bottom).
-    _hw_layout $root $dir $branch
+    # 3. Layout: nvim (top-left) + claude (top-right) + shell (bottom), or
+    # claude + glance with --review.
+    set -l layout
+    set -q _flag_review; and set layout --review
+    _hw_layout $layout $root $dir $branch
 
     echo "hw: $branch -> $dir"
 end

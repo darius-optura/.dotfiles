@@ -1,9 +1,11 @@
 function hw-open --description 'Open an existing .claude/worktrees/<branch> with nvim+claude+shell layout'
-    # Usage: hw-open <branch>
+    # Usage: hw-open [--review] <branch>
     # Opens an existing worktree as a herdr workspace and lays out the same
     # 3 panes as `hw`. No bootstrap — the worktree is assumed already set up.
+    # --review lays out only claude | glance (PR), as `hw --review` does.
+    argparse review -- $argv; or return 1
     if test (count $argv) -ne 1
-        echo "usage: hw-open <branch>" >&2
+        echo "usage: hw-open [--review] <branch>" >&2
         return 1
     end
     set -l branch $argv[1]
@@ -32,6 +34,8 @@ function hw-open --description 'Open an existing .claude/worktrees/<branch> with
         return 1
     end
 
-    _hw_layout $root $dir $branch
+    set -l layout
+    set -q _flag_review; and set layout --review
+    _hw_layout $layout $root $dir $branch
     echo "hw-open: opened $dir"
 end
