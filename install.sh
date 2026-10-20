@@ -1299,7 +1299,6 @@ uninstall_all() {
     # Remove symlinks first
     uninstall_symlinks
     uninstall_claude_config
-    uninstall_desk_pusher
 
     # Uninstall packages (with prompts)
     uninstall_packages
@@ -1316,53 +1315,6 @@ uninstall_all() {
     print_success "Uninstall complete!"
     echo ""
     print_info "To restore your previous configs, run: make restore"
-}
-
-# =============================================================================
-# desk herdr pusher (macOS LaunchAgent, only where herdr is installed)
-# =============================================================================
-
-DESK_PUSH_LABEL="com.darius.herdr-desk-push"
-DESK_PUSH_PLIST="$HOME/Library/LaunchAgents/$DESK_PUSH_LABEL.plist"
-
-install_desk_pusher() {
-    [[ "$OS" == "macos" ]] || return 0
-    if ! command -v herdr &>/dev/null; then
-        print_info "herdr not found, skipping the desk pusher"
-        return 0
-    fi
-    if [[ "$DRY_RUN" == true ]]; then
-        print_info "[DRY-RUN] Would install LaunchAgent $DESK_PUSH_LABEL"
-        return 0
-    fi
-
-    # launchd neither expands $HOME nor reads the login PATH: render both in.
-    local path_dirs
-    path_dirs="$(dirname "$(command -v herdr)"):$(dirname "$(command -v curl)"):/usr/bin:/bin"
-    mkdir -p "$HOME/Library/LaunchAgents"
-    chmod +x "$DOTFILES_DIR/bin/herdr-desk-push"
-    sed -e "s|__SCRIPT__|$DOTFILES_DIR/bin/herdr-desk-push|" -e "s|__PATH__|$path_dirs|" \
-        "$DOTFILES_DIR/launchd/$DESK_PUSH_LABEL.plist.template" > "$DESK_PUSH_PLIST"
-    launchctl bootout "gui/$(id -u)/$DESK_PUSH_LABEL" 2>/dev/null || true
-    if launchctl bootstrap "gui/$(id -u)" "$DESK_PUSH_PLIST"; then
-        print_success "Installed LaunchAgent $DESK_PUSH_LABEL"
-    else
-        print_warning "launchctl bootstrap failed for $DESK_PUSH_LABEL"
-    fi
-    if [[ ! -f "$HOME/.config/desk/push.env" ]]; then
-        print_warning "desk pusher idle until ~/.config/desk/push.env has DESK_URL=https://<intel-mac>.<tailnet>.ts.net:8090"
-    fi
-}
-
-uninstall_desk_pusher() {
-    [[ -f "$DESK_PUSH_PLIST" ]] || return 0
-    if [[ "$DRY_RUN" == true ]]; then
-        print_info "[DRY-RUN] Would remove LaunchAgent $DESK_PUSH_LABEL"
-        return 0
-    fi
-    launchctl bootout "gui/$(id -u)/$DESK_PUSH_LABEL" 2>/dev/null || true
-    rm -f "$DESK_PUSH_PLIST"
-    print_success "Removed LaunchAgent $DESK_PUSH_LABEL"
 }
 
 # =============================================================================
@@ -1400,7 +1352,6 @@ main() {
     create_directories
     symlink_configs
     install_claude_config
-    install_desk_pusher
 
     # Shell and plugins
     install_fish_plugins
