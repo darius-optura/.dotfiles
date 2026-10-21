@@ -1,11 +1,51 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flow-breaker *)"
+      "Bash(flow-breaker *)",
+      "Bash(flow-breaker nudge:*)",
+      "Bash(flow-breaker status:*)",
+      "Bash(flow-breaker list:*)",
+      "Bash(flow-breaker ls:*)",
+      "Bash(flow-breaker archive:*)",
+      "Bash(flow-breaker cal-list:*)",
+      "Bash(flow-breaker cal-feeds:*)",
+      "Bash(flow-breaker capture:*)",
+      "Bash(flow-breaker add:*)"
+    ],
+    "deny": [
+      "Bash(flow-breaker clear:*)"
+    ],
+    "ask": [
+      "Bash(flow-breaker done:*)",
+      "Bash(flow-breaker snooze:*)"
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
+  "skillOverrides": {
+    "diagnose": "off"
+  },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash __HOME__/.claude/hooks/block-outside-worktree.sh"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "startup|resume",
@@ -13,10 +53,16 @@
           {
             "type": "command",
             "command": "flow-breaker nudge 2>/dev/null || true"
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
           {
             "type": "command",
-            "command": "node __HOME__/.claude/hooks/tldr-activate.js"
+            "command": "bash '__HOME__/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
           }
         ]
       }
@@ -26,11 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node __HOME__/.claude/hooks/tldr-mode-tracker.js"
-          },
-          {
-            "type": "command",
-            "command": "bash __HOME__/.claude/hooks/remote-control-keepawake.sh"
+            "command": "flow-breaker nudge --quiet 2>/dev/null || true"
           }
         ]
       }
@@ -41,31 +83,63 @@
     "command": "bash __HOME__/.dotfiles/scripts/claude-statusline.sh"
   },
   "enabledPlugins": {
-    "agents-data-ai@buildwithclaude": true,
-    "claude-code-setup@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
+    "code-review@anthropic-plugin-directory": true,
     "code-simplifier@claude-plugins-official": true,
+    "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "linear@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true,
-    "pr-review-toolkit@claude-plugins-official": true,
+    "mattpocock-skills@mattpocock": true,
+    "occam@occam": true,
     "security-guidance@claude-plugins-official": true,
     "superpowers@superpowers-marketplace": true,
-    "swift-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "vercel@claude-plugins-official": true
   },
+  "extraKnownMarketplaces": {
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
+    },
+    "occam": {
+      "source": {
+        "source": "github",
+        "repo": "darius-optura/occam"
+      }
+    },
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
+  },
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-ansi",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "agentPushNotifEnabled": true
+  "voiceEnabled": true
 }

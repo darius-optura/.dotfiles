@@ -100,7 +100,7 @@ check: ## Verify installation health
 	@echo "Checking dotfiles installation..."
 	@echo ""
 	@echo "Required Commands:"
-	@for cmd in fish tmux nvim bat starship fd rg fzf delta zoxide eza lazygit; do \
+	@for cmd in fish tmux nvim bat starship fd rg fzf delta zoxide eza lazygit jq gh rtk btop herdr; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			echo "  ✓ $$cmd"; \
 		else \
@@ -109,7 +109,7 @@ check: ## Verify installation health
 	done
 	@echo ""
 	@echo "Configuration Symlinks:"
-	@for config in ghostty fish nvim starship tmux bat lazygit opencode; do \
+	@for config in ghostty fish nvim starship tmux bat lazygit btop; do \
 		if [ -L "$$HOME/.config/$$config" ]; then \
 			echo "  ✓ $$config"; \
 		else \

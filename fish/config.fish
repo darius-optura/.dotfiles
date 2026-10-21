@@ -28,7 +28,6 @@ alias tls='tmux list-sessions'
 alias tns='tmux new-session -ds'
 alias lzd='lazydocker'
 alias s="fd --type f --strip-cwd-prefix --hidden --follow --exclude .git --exclude node_modules | fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}' | xargs nvim"
-alias oo="opencode"
 
 # env variables
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml

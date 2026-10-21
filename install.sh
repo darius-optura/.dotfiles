@@ -422,12 +422,11 @@ install_packages() {
         "tree-sitter-cli"
         "luarocks"
         "python"
+        "jq"
+        "gh"
+        "rtk"
+        "btop"
     )
-
-    # macOS-only: add opencode from tap
-    if [[ "$OS" == "macos" ]]; then
-        packages+=("anomalyco/tap/opencode")
-    fi
 
     for package in "${packages[@]}"; do
         local pkg_name
@@ -495,9 +494,7 @@ install_packages() {
 
     install_herdr
 
-    # Linux-only: Install opencode from GitHub releases
     if [[ "$OS" == "linux" ]]; then
-        install_opencode_linux
         install_nerd_font_linux
 
         # Note about Ghostty
@@ -550,75 +547,6 @@ install_nerd_font_linux() {
     fc-cache -fv &>/dev/null || true
     print_success "Installed Hack Nerd Font"
     record_package "manual" "hack-nerd-font"
-}
-
-# =============================================================================
-# OpenCode Installation (Linux - from GitHub releases)
-# =============================================================================
-
-install_opencode_linux() {
-    if [[ "$OS" != "linux" ]]; then
-        return
-    fi
-
-    print_info "Installing OpenCode from GitHub releases..."
-
-    if command -v opencode &>/dev/null; then
-        if [[ "$FORCE" == true ]]; then
-            print_info "Reinstalling OpenCode..."
-        else
-            print_warning "OpenCode already installed"
-            record_preexisting "formulae" "opencode"
-            return
-        fi
-    fi
-
-    if [[ "$DRY_RUN" == true ]]; then
-        print_info "[DRY-RUN] Would download and install OpenCode"
-        return
-    fi
-
-    # Determine architecture
-    local oc_arch=""
-    case "$ARCH" in
-        x86_64|amd64)
-            oc_arch="x64"
-            ;;
-        aarch64|arm64)
-            oc_arch="arm64"
-            ;;
-        *)
-            print_error "Unsupported architecture for OpenCode: $ARCH"
-            return
-            ;;
-    esac
-
-    # Get latest version
-    local version
-    version=$(curl -sL "https://api.github.com/repos/anomalyco/opencode/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
-    if [[ -z "$version" ]]; then
-        print_error "Failed to fetch OpenCode version"
-        return
-    fi
-
-    print_info "Downloading OpenCode $version for linux-$oc_arch..."
-
-    local download_url="https://github.com/anomalyco/opencode/releases/download/${version}/opencode-linux-${oc_arch}.tar.gz"
-    local tmp_dir
-    tmp_dir=$(mktemp -d)
-
-    curl -fLo "$tmp_dir/opencode.tar.gz" "$download_url"
-    tar -xzf "$tmp_dir/opencode.tar.gz" -C "$tmp_dir"
-
-    # Install to ~/.local/bin
-    mkdir -p "$LOCAL_BIN_DIR"
-    mv "$tmp_dir/opencode" "$LOCAL_BIN_DIR/opencode"
-    chmod +x "$LOCAL_BIN_DIR/opencode"
-
-    rm -rf "$tmp_dir"
-
-    print_success "Installed OpenCode $version"
-    record_package "manual" "opencode"
 }
 
 # =============================================================================
@@ -706,9 +634,7 @@ backup_existing() {
         "tmux"
         "bat"
         "lazygit"
-        "alacritty"
-        "kitty"
-        "opencode"
+        "btop"
     )
 
     local backed_up=false
@@ -823,9 +749,7 @@ symlink_configs() {
         "tmux"
         "bat"
         "lazygit"
-        "alacritty"
-        "kitty"
-        "opencode"
+        "btop"
     )
 
     for config in "${configs[@]}"; do
@@ -1131,9 +1055,7 @@ uninstall_symlinks() {
         "tmux"
         "bat"
         "lazygit"
-        "alacritty"
-        "kitty"
-        "opencode"
+        "btop"
     )
 
     for config in "${configs[@]}"; do

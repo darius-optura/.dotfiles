@@ -447,17 +447,6 @@ update_fzf_theme() {
     fi
 }
 
-# Update OpenCode theme
-update_opencode_theme() {
-    local opencode_config="$CONFIG_DIR/opencode/opencode.json"
-
-    if [[ -f "$opencode_config" ]]; then
-        sed -i.bak "s/\"theme\": \".*\"/\"theme\": \"$THEME\"/" "$opencode_config"
-        rm -f "$opencode_config.bak"
-        print_success "OpenCode theme updated to $THEME"
-    fi
-}
-
 # Update Claude Code theme
 # Claude Code has no custom theme system — only built-in names. The `-ansi`
 # variants inherit the terminal's ANSI palette, so any of our terminal themes
@@ -703,7 +692,6 @@ main() {
     update_starship_theme
     update_fzf_theme
     update_neovim_theme
-    update_opencode_theme
     update_claude_theme
     save_theme_preference
 
@@ -716,7 +704,6 @@ main() {
     echo "  • Herdr: reloaded live if running, else applies on next launch"
     echo "  • FZF colors will apply immediately in new shell sessions"
     echo "  • Neovim: Restart Neovim to see the new colorscheme"
-    echo "  • OpenCode: Theme will apply on next launch"
     echo ""
 }
 
