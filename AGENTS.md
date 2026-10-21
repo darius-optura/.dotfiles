@@ -1,14 +1,14 @@
 # AGENTS.md - Dotfiles Repository
 
 This is a personal dotfiles configuration repository for macOS development environments.
-It manages configurations for Fish shell, Neovim, Tmux, Ghostty terminal, and other tools.
+It manages configurations for Fish shell, Neovim, Ghostty terminal, herdr, Tmux, Claude Code, and other tools.
 
 ## Project Overview
 
 - **Type**: Dotfiles/configuration repository
 - **Platform**: macOS (Intel and Apple Silicon), partial Linux support
 - **Languages**: Bash, Fish, Lua, TOML, YAML
-- **Package Manager**: Homebrew (macOS), apt (Linux fallback)
+- **Package Manager**: Homebrew (macOS and Linux); apt only for Linux prerequisites
 
 ## Build/Install Commands
 
@@ -31,10 +31,10 @@ make backup
 # Restore from latest backup
 make restore
 
-# Remove symlinks
+# Remove symlinks and installed packages (interactive)
 make uninstall
 
-# Switch theme (catppuccin, rose-pine, gruvbox, cyberdream)
+# Switch theme (catppuccin, rose-pine, gruvbox, cyberdream, optura)
 make theme THEME=catppuccin VARIANT=dark
 make theme THEME=rose-pine VARIANT=light
 ```
@@ -157,7 +157,13 @@ return {
 
 ```
 ~/.dotfiles/
-├── bin/                     # Custom executable scripts
+├── bin/                     # Custom executable scripts (herdr-*, tmux-*, vmrss)
+├── claude/                  # Claude Code config, installed into ~/.claude
+│   ├── CLAUDE.md            # Global instructions (symlinked)
+│   ├── commands/            # Slash commands (symlinked)
+│   ├── hooks/               # Hook scripts (symlinked)
+│   ├── skills/              # Skills (symlinked)
+│   └── settings.json.template  # Rendered to ~/.claude/settings.json (__HOME__ substituted)
 ├── fish/                    # Fish shell configuration
 │   ├── config.fish          # Main config
 │   ├── functions/           # Fish functions (auto-loaded)
@@ -168,15 +174,16 @@ return {
 │   └── lua/
 │       ├── config/          # Core settings
 │       └── plugins/         # Plugin configurations
-├── tmux/                    # Tmux configuration
+├── tmux/                    # Tmux configuration (fallback multiplexer)
 │   ├── tmux.conf            # Main config
 │   └── conf/                # Modular configs
 ├── ghostty/                 # Ghostty terminal config
+├── herdr/                   # herdr config.toml (only this file is symlinked)
 ├── starship/                # Starship prompt config
-├── opencode/                # OpenCode AI config
-│   ├── opencode.json        # Main config
-│   └── themes/              # Custom themes (transparent bg)
-├── scripts/                 # Utility scripts
+├── btop/                    # btop config and themes
+├── bat/                     # Bat themes
+├── lazygit/                 # Lazygit config
+├── scripts/                 # Utility scripts (switch-theme.sh, ghostty-shell, brew-heal.sh, ...)
 ├── themes/                  # Theme documentation
 ├── Makefile                 # Command shortcuts
 ├── install.sh               # Installation script
@@ -204,20 +211,34 @@ print_error "Failed"         # Red X: ✗ message
 
 ## Theme System
 
-Supports 4 themes with dark/light variants:
+Supports 5 themes with dark/light variants:
 - catppuccin (default): Mocha (dark) / Latte (light)
 - rose-pine: Moon (dark) / Dawn (light)
 - gruvbox: Dark / Light
 - cyberdream: Dark / Light
+- optura: Dark / Light
 
-Theme changes affect: Fish, Ghostty, Tmux, Herdr, Bat, Starship, FZF, Neovim, OpenCode, Claude Code,
-macOS appearance.
+Theme changes affect: Fish, Ghostty, Tmux, Herdr, Bat, Starship, FZF, Neovim, Claude Code,
+macOS appearance. The choice is saved to `~/.config/dotfiles-theme`.
 
 Herdr uses its built-in theme names for catppuccin, rose-pine and gruvbox. cyberdream and optura
 have no built-in match, so `update_herdr_theme()` writes a full `[theme.custom]` palette on top of
 the closest built-in base. The block sits under a marker at the end of `herdr/config.toml`.
+Keep custom herdr config above that marker: the switcher drops everything below it.
 
-OpenCode themes use transparent backgrounds (`"none"`) to inherit terminal transparency.
+Claude Code has no custom themes, so `update_claude_theme()` sets `dark-ansi` or `light-ansi` in
+`~/.claude.json`, which follow the terminal palette.
+
+## Terminal Workspace
+
+- Ghostty runs `scripts/ghostty-shell`, which starts `herdr --session default` in Fish. herdr is
+  the primary multiplexer; tmux is not started automatically and stays as a fallback.
+- Ghostty `super+*` keybinds send `Ctrl+b`-prefixed keys that herdr handles (see `ghostty/config`
+  and `herdr/config.toml`).
+- Custom herdr bindings: `prefix+f` runs `herdr-sessionizer`, `prefix+w` opens the herdr-bar
+  command bar (`herdr-switch` kept commented as the fallback), `prefix+g` opens Glance PR.
+- Worktree fish functions: `hw [--review] <branch> [<base>]`, `hw-open [--review] <branch>`,
+  `hw-rm [<branch>|<path>]`. Worktrees live in `<repo>/.claude/worktrees/<branch>`.
 
 ## Important Paths
 
@@ -229,10 +250,15 @@ OpenCode themes use transparent backgrounds (`"none"`) to inherit terminal trans
 
 ## Key Bindings Reference
 
+- **herdr prefix**: `Ctrl+b`
 - **Tmux prefix**: `Ctrl+b`
 - **Neovim leader**: `Space`
 
 ## Dependencies
 
 Required commands (verified by `make check`):
-fish, tmux, nvim, bat, starship, fd, rg, fzf, delta, zoxide, eza, lazygit
+fish, tmux, nvim, bat, starship, fd, rg, fzf, delta, zoxide, eza, lazygit, jq, gh, rtk, btop, herdr
+
+Config symlinks checked: ghostty, fish, nvim, starship, tmux, bat, lazygit, btop, and
+`herdr/config.toml`. Bin scripts checked: tmux-sessionizer, tmux-windowizer, herdr,
+herdr-sessionizer, herdr-switch.

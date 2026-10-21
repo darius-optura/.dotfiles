@@ -22,9 +22,6 @@
     "defaultMode": "auto"
   },
   "model": "opus",
-  "skillOverrides": {
-    "diagnose": "off"
-  },
   "hooks": {
     "PreToolUse": [
       {

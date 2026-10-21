@@ -36,14 +36,16 @@ Or run the script directly:
 
 When you switch themes, the following configurations are updated:
 
-1. **Fish Shell** - Terminal color scheme
-2. **Ghostty** - Terminal emulator theme
-3. **Alacritty** - Fallback terminal theme
-4. **Kitty** - Fallback terminal theme
-5. **Tmux** - Status bar and pane colors
+1. **macOS** - Light/dark appearance
+2. **Fish Shell** - Terminal color scheme
+3. **Ghostty** - Terminal emulator theme
+4. **Tmux** - Status bar and pane colors
+5. **Herdr** - Built-in theme, or a custom palette for cyberdream and optura
 6. **Bat** - Syntax highlighting theme
 7. **Starship** - Prompt color palette
 8. **FZF** - Fuzzy finder colors (automatically via Fish function)
+9. **Neovim** - Colorscheme
+10. **Claude Code** - `dark-ansi` / `light-ansi`
 9. **Neovim** - Editor colorscheme (automatically via sed)
 10. **Herdr** - Regenerates the `[theme]` block in `herdr/config.toml` and reloads a running server. catppuccin, rose-pine and gruvbox map to herdr built-in names; cyberdream and optura get a full `[theme.custom]` palette on top of the closest built-in base
 11. **Claude Code** - Sets `theme` in `~/.claude.json` to `dark-ansi` / `light-ansi` so the CLI inherits the terminal ANSI palette (no custom Claude theme system exists; the Optura ghostty palette drives Claude's colors)
@@ -62,12 +64,6 @@ Create theme files for each application in their respective config directories:
 
 # Ghostty theme
 ~/.config/ghostty/themes/yourtheme.conf
-
-# Alacritty theme
-~/.config/alacritty/yourtheme.toml
-
-# Kitty theme
-~/.config/kitty/themes/yourtheme.conf
 
 # Tmux theme (if using catppuccin plugin)
 ~/.config/tmux/themes/yourtheme.conf
@@ -97,8 +93,6 @@ yourtheme)
     ;;
 
 # ... repeat for all other update functions including:
-# - update_alacritty_theme() - updates import line in alacritty.toml
-# - update_kitty_theme() - updates include line in kitty.conf
 # - update_tmux_theme() - replaces source-file line in tmux.conf
 # - update_bat_theme() - updates BAT_THEME in fish/config.fish
 # - update_starship_theme() - copies preset file to starship.toml
@@ -149,22 +143,6 @@ palette = 0=#45475a
 palette = 1=#f38ba8
 palette = 2=#a6e3a1
 # ... etc (16 colors total)
-```
-
-### Alacritty Theme
-
-Create `~/.config/alacritty/yourtheme.toml`:
-
-```toml
-[colors.primary]
-background = "#1e1e2e"
-foreground = "#cdd6f4"
-
-[colors.normal]
-black = "#45475a"
-red = "#f38ba8"
-green = "#a6e3a1"
-# ... etc
 ```
 
 ### Tmux Theme

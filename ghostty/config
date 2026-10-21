@@ -6,7 +6,7 @@ font-family-bold-italic = Berkeley Mono Variable Italic Bold Italic
 # Nerd Font fallback for powerline glyphs and icons (used by tmux pills)
 font-family = Hack Nerd Font Mono
 
-# Branch shell by host app (Ghostty -> fish+tmux, Supacode -> zsh, no tmux)
+# Start herdr in fish (scripts/ghostty-shell sets PATH for the herdr server)
 command = /Users/darius/.dotfiles/scripts/ghostty-shell
 
 shell-integration = fish
@@ -57,5 +57,5 @@ keybind = super+shift+g=text:\x02G
 keybind = super+shift+o=text:\x02O
 keybind = super+alt+d=text:\x02\x1bd
 
-# Opt+Backspace -> ESC DEL (word-delete) in terminals, incl. Supacode embed
+# Opt+Backspace -> ESC DEL (word-delete) in terminals
 macos-option-as-alt = true

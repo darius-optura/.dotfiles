@@ -15,13 +15,16 @@ Feel free to fork this repository and customize it for your own needs. Here are 
 
 2. Add it to `PACKAGES.md` for documentation
 
-3. Update `install.sh` to include it in the package array:
+3. Update `install.sh` to include it in the package array in `install_packages()`
+   (GUI apps go in the macOS-only `casks` array):
    ```bash
    local packages=(
        # ... existing packages
        "your-package"
    )
    ```
+
+4. If it must be present, add it to the command list in the `check` target of the `Makefile`
 
 ### Customizing Fish Shell
 
@@ -52,9 +55,15 @@ return {
 }
 ```
 
+### Customizing herdr
+
+Edit `herdr/config.toml`. It holds only overrides of herdr's defaults (see
+`herdr --default-config`). Keep your changes above the `# BEGIN theme` marker: the theme
+switcher rewrites everything below it.
+
 ### Customizing Tmux
 
-Edit `tmux/tmux.conf` for:
+Tmux is a fallback; Ghostty starts herdr. Edit `tmux/tmux.conf` for:
 - Keybindings
 - Status bar configuration
 - Plugin settings
@@ -62,9 +71,18 @@ Edit `tmux/tmux.conf` for:
 ### Adding New Keybindings
 
 #### Ghostty
-Edit `ghostty/config`:
+Edit `ghostty/config`. `\x02` is `Ctrl+b`, the herdr (and tmux) prefix:
 ```conf
-keybind = super+your_key=text:\x02your_command
+keybind = super+your_key=text:\x02your_key
+```
+
+#### herdr
+Edit `herdr/config.toml`:
+```toml
+[[keys.command]]
+key = "prefix+your_key"
+type = "popup"
+command = "your-command"
 ```
 
 #### Tmux
@@ -81,9 +99,10 @@ bind-key your_key your_command
    chmod +x bin/myscript
    ```
 
-2. Update `install.sh` to symlink it:
+2. Add it to the `bin_scripts` array in `symlink_configs()` in `install.sh`, which links it
+   into `~/.local/bin`:
    ```bash
-   ln -sf "$DOTFILES_DIR/bin/myscript" "$LOCAL_BIN_DIR/myscript"
+   local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer" "herdr-switch" "myscript")
    ```
 
 ### Modifying Theme Switcher
@@ -91,9 +110,11 @@ bind-key your_key your_command
 To add a new theme, edit `scripts/switch-theme.sh`:
 
 1. Add theme to `normalize_theme()` function
-2. Add theme cases to each `update_*_theme()` function
+2. Add theme cases to each `update_*_theme()` function (for herdr, map it to a built-in theme
+   name or write a `[theme.custom]` palette in `update_herdr_theme()`)
 3. Create theme files in respective config directories
-4. Document in `themes/README.md`
+4. Add the theme name to the `theme` target help in the `Makefile`
+5. Document in `themes/README.md`
 
 See [themes/README.md](themes/README.md) for detailed instructions.
 
@@ -209,7 +230,10 @@ Test individual scripts:
 ```bash
 # Test theme switcher
 bash -n scripts/switch-theme.sh  # Syntax check
-bash scripts/switch-theme.sh catppuccin  # Dry run
+bash scripts/switch-theme.sh catppuccin  # Applies the theme (no dry-run mode)
+
+# Preview installation without making changes
+bash install.sh --dry-run
 ```
 
 ### Debugging Installation

@@ -6,8 +6,6 @@ nvim/plugin
 # Fish shell runtime
 fish/fish_variables
 
-# K9s
-k9s/skins
 
 # SSH configs (sensitive)
 ssh

@@ -3,7 +3,7 @@ function hw --description 'herdr worktree: create off a base ref, bootstrap, lay
     # Creates <repo>/.claude/worktrees/<branch> off <base> (default origin/main),
     # runs the repo's .herdr/setup.sh if present, then builds a 3-pane workspace
     # via the herdr socket API:
-    # nvim (root, left) | claude (top-right) | codex (bottom-right).
+    # nvim (top-left) | claude (top-right) | Glance PR (right column), shell below.
     # --review lays out only claude | glance (PR), for reviewing a branch.
     #
     # NOTE: run this from inside a herdr session (a herdr server must be running).
