@@ -240,6 +240,22 @@ Claude Code has no custom themes, so `update_claude_theme()` sets `dark-ansi` or
 - Worktree fish functions: `hw [--review] <branch> [<base>]`, `hw-open [--review] <branch>`,
   `hw-rm [<branch>|<path>]`. Worktrees live in `<repo>/.claude/worktrees/<branch>`.
 
+### Rex
+
+Rex (the Superlogical multiplexer app) is the alternative to Ghostty + herdr. Both setups work side
+by side.
+
+- `rex/init.lua` (linked to `~/.config/rex`) ports the Ghostty `super+*` keys: `Cmd+N` /
+  `Cmd+Shift+N` split, `Cmd+F` runs `rex-sessionizer` in a floating pane, `Cmd+K` opens the Rex
+  session switcher, `Cmd+G` opens Glance PR (`herdr-pr-glance view --cwd`). Reload with
+  `rex config reload`.
+- Worktree fish functions: `rw [--review] <branch> [<base>]`, `rw-open [--review] <branch>`,
+  `rw-rm [<branch>|<path>]`. Same worktree path and `.herdr/setup.sh` / `teardown.sh` as `hw`. Each
+  worktree gets a Rex session and first tab labelled with the branch; `_rw_session` finds it.
+- Rex app actions (`rex do session.select`, theme import) need Remote Control on in
+  Rex > Settings > Rex Server. `make theme` imports the Ghostty theme file into Rex.
+- In scripts, pass `-s <session>` with every `-b <block>`; start pane commands as `fish -C CMD`.
+
 ## Important Paths
 
 - **Config directory**: `~/.config` (XDG_CONFIG_HOME)

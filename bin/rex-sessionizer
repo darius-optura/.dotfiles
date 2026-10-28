@@ -1,0 +1,36 @@
+#!/usr/bin/env fish
+
+# fzf a project directory, then open it as a Rex SESSION (create or switch).
+# Mirrors bin/herdr-sessionizer. Bound to Cmd+F in rex/init.lua, which runs it
+# in a floating pane. Switching the app needs Remote Control turned on in
+# Rex > Settings > Rex Server.
+
+set -l config_file "$HOME/.config/tmux-sessionizer/config"
+
+set -l paths
+if test -f "$config_file"
+    while read -l line
+        test -z "$line"; and continue
+        string match -q '#*' "$line"; and continue
+        set line (string replace '~' "$HOME" "$line")
+        test -d "$line"; and set -a paths "$line"
+    end <"$config_file"
+end
+test (count $paths) -eq 0; and set paths "$HOME" "$HOME/.config" "$HOME/.dotfiles"
+
+set selected ""
+if test (count $argv) -eq 1
+    set selected $argv[1]
+else
+    set selected (find $paths -mindepth 1 -maxdepth 1 -type d 2>/dev/null | fzf)
+end
+test -z "$selected"; and exit 0
+
+set -l name (basename "$selected" | tr . _)
+
+# Switch to the session labelled after the dir, else create it.
+set -l session (rex ls --json | jq -r --arg n "$name" '.sessions[] | select(.label == $n) | .session_id' | head -n1)
+if test -z "$session"
+    set session (rex new "$name" --cwd "$selected" --json | jq -r '.session_id')
+end
+rex do session.select session_id=$session

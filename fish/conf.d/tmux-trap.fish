@@ -9,6 +9,6 @@ function __trap_exit_tmux
   tmux switch -t default
 end
 
-if status --is-interactive
+if status --is-interactive; and set -q TMUX
 	trap __trap_exit_tmux SIGKILL SIGINT INT EXIT
 end

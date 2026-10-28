@@ -91,3 +91,8 @@ end
 # This won't be added again if you remove it.
 source ~/.orbstack/shell/init2.fish 2>/dev/null || :
 
+# Rex puts its own `rex` first on PATH; the exports above reorder PATH, so
+# move it back to the front (https://www.superlogical.com/rex/docs/automate/cli).
+if set -q REX_BIN_DIR
+    fish_add_path --path --prepend --move $REX_BIN_DIR
+end

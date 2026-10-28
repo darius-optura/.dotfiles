@@ -635,6 +635,7 @@ backup_existing() {
         "bat"
         "lazygit"
         "btop"
+        "rex"
     )
 
     local backed_up=false
@@ -750,6 +751,7 @@ symlink_configs() {
         "bat"
         "lazygit"
         "btop"
+        "rex"
     )
 
     for config in "${configs[@]}"; do
@@ -779,7 +781,7 @@ symlink_configs() {
     link_herdr_config
 
     # Bin scripts
-    local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer" "herdr-switch")
+    local bin_scripts=("tmux-sessionizer" "tmux-windowizer" "herdr-sessionizer" "herdr-switch" "rex-sessionizer")
 
     for script in "${bin_scripts[@]}"; do
         if [[ "$DRY_RUN" == true ]]; then
@@ -1056,6 +1058,7 @@ uninstall_symlinks() {
         "bat"
         "lazygit"
         "btop"
+        "rex"
     )
 
     for config in "${configs[@]}"; do
